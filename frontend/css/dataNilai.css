@@ -1,0 +1,129 @@
+.filter-wrapper {
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Label filter */
+.filter-wrapper label {
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+}
+
+/* Style untuk select box */
+#mapel-filter {
+    padding: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+    width: 200px;
+    transition: all 0.3s ease;
+}
+
+/* Gaya hover pada select */
+#mapel-filter:hover {
+    border-color: #007bff;
+    background-color: #e9f7ff;
+}
+
+/* Gaya ketika select dalam fokus */
+#mapel-filter:focus {
+    border-color: #007bff;
+    outline: none;
+    background-color: #fff;
+}
+
+
+label {
+    font-size: 14px;
+    color: #495057;
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+#jenis-nilai-filter {
+    padding: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+    width: 200px;
+    transition: all 0.3s ease;
+}
+
+/* Gaya hover pada select */
+#jenis-nilai-filter:hover {
+    border-color: #007bff;
+    background-color: #e9f7ff;
+}
+
+/* Gaya ketika select dalam fokus */
+#jenis-nilai-filter:focus {
+    border-color: #007bff;
+    outline: none;
+    background-color: #fff;
+}
+
+#button-container button {
+    background-color: transparent;
+    color: #004D40;
+    border: 2px solid #004D40;
+    padding: 5px 10px;
+    border-radius: 3px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+#button-container button:hover {
+    background-color: #004D40;
+    color: white;
+}
+
+#button-container {
+    text-align: right;
+    margin-bottom: 10px;
+}
+
+
+/* Menata kolom berdasarkan jenis nilai */
+td[class^="column-"] {
+    padding: 5px;
+    text-align: center;
+    border: 1px solid #ddd;
+}
+
+/* Menata input di dalam sel */
+input[type="number"] {
+    padding: 3px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 12px;
+    text-align: center;
+    width: auto; /* Mengikuti ukuran sel secara otomatis */
+    transition: all 0.2s ease; /* Transisi untuk efek hover dan focus */
+}
+
+/* Efek hover pada input */
+input[type="number"]:hover {
+    border-color: #66afe9;
+    background-color: #f4faff;
+}
+
+/* Efek focus pada input */
+input[type="number"]:focus {
+    outline: none;
+    border-color: #4CAF50;
+    background-color: #e8f5e9;
+}
+
+/* Placeholder input */
+input[type="number"]::placeholder {
+    color: #888;
+    font-style: italic;
+}

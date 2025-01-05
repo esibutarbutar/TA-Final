@@ -38,7 +38,7 @@ loginForm.addEventListener("submit", function(event) {
                     text: `Selamat datang, ${user.name}!`,
                     icon: 'success',
                     confirmButtonText: 'Lanjutkan',
-                    confirmButtonColor: '#3CB371'
+                    confirmButtonColor: '#004D40'
                 }).then(() => {
                     // Redirect setelah menutup SweetAlert
                     if (user.role === 'admin') {

@@ -68,10 +68,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
     hideAllSections();  
-    const defaultLink = document.querySelector('[data-target="admin-profile"]'); 
+    const defaultLink = document.querySelector('[data-target="kepsek-profile"]'); 
     if (defaultLink) {
         defaultLink.classList.add('active'); 
-        document.getElementById('admin-profile').classList.remove('hidden');  
+        document.getElementById('kepsek-profile').classList.remove('hidden');  
     }
 });
 

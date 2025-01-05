@@ -57,84 +57,83 @@ async function fetchKelasData(kelasId) {
 }
 
 async function displayKelasHeader(kelasData) {
-  const kelasHeader = document.getElementById('kelas-header');
-  kelasHeader.innerHTML = ''; // Hapus isi sebelumnya
-
-  if (!kelasData) {
-    console.error('Data kelas tidak tersedia.');
-    return;
-  }
-
-  const kelasInfo = document.createElement('p');
-  kelasInfo.className = 'kelas';
-  kelasInfo.textContent = `Kelas: ${kelasData.nama_kelas || 'Tidak Tersedia'}`;
-
-  const waliKelasInfo = document.createElement('p');
-  waliKelasInfo.className = 'wali';
-  waliKelasInfo.textContent = `Wali Kelas: ${kelasData.nama_pegawai || 'Tidak Tersedia'}`;
-
-  // Membuat label dan input dalam satu elemen
-  const dateLabel = document.createElement('label');
-  dateLabel.className = 'kalender';
-  dateLabel.setAttribute('for', 'attendance-date');
+    const kelasHeader = document.getElementById('kelas-header');
+    kelasHeader.innerHTML = ''; // Hapus isi sebelumnya
   
-  const labelText = document.createTextNode('Pilih Tanggal: ');
-  dateLabel.appendChild(labelText); // Menambahkan teks "Pilih Tanggal:"
-
-  const dateInput = document.createElement('input');
-  dateInput.type = 'date';
-  dateInput.id = 'attendance-date';
-  dateInput.name = 'attendance-date';
-  dateInput.value = new Date().toISOString().split('T')[0]; // Menetapkan default value pada input
-  dateInput.className = 'kalenderBox';
-  
-  // Menambahkan input ke dalam label
-  dateLabel.appendChild(dateInput);
-
-  // Menambahkan event listener untuk perubahan tanggal
-  dateInput.addEventListener('change', async () => {
-    const selectedDate = dateInput.value;
-    await fetchAbsensiData(kelasData.id, selectedDate);
-  });
-
-  const academicYearInfo = document.createElement('p');
-  academicYearInfo.className = 'tahun';
-
-  const semesterInfo = document.createElement('p');
-  semesterInfo.className = 'semester';
-
-  const tahunAjaranId = kelasData.id_tahun_ajaran;
-  if (!tahunAjaranId) {
-    console.error('ID Tahun Ajaran tidak tersedia di kelasData:', kelasData);
-    academicYearInfo.textContent = 'Tahun Ajaran Tidak Tersedia';
-    semesterInfo.textContent = 'Semester Tidak Tersedia';
-  } else {
-    try {
-      const tahunAjaranResponse = await fetch(`/api/tahun-ajaran/${tahunAjaranId}`);
-      if (tahunAjaranResponse.ok) {
-        const tahunAjaranData = await tahunAjaranResponse.json();
-        academicYearInfo.textContent = `Tahun Ajaran: ${tahunAjaranData.tahun_ajaran}`;
-        semesterInfo.textContent = `Semester: ${tahunAjaranData.semester}`;
-      } else {
-        console.error('Gagal mendapatkan Tahun Ajaran:', tahunAjaranResponse.statusText);
-        academicYearInfo.textContent = 'Tahun Ajaran Tidak Ditemukan';
-        semesterInfo.textContent = 'Semester Tidak Ditemukan';
-      }
-    } catch (error) {
-      console.error('Error fetching Tahun Ajaran:', error);
-      academicYearInfo.textContent = 'Gagal memuat Tahun Ajaran';
-      semesterInfo.textContent = 'Gagal memuat Semester';
+    if (!kelasData) {
+      console.error('Data kelas tidak tersedia.');
+      return;
     }
+  
+    const kelasInfo = document.createElement('p');
+    kelasInfo.className = 'kelas';
+    kelasInfo.textContent = `Kelas: ${kelasData.nama_kelas || 'Tidak Tersedia'}`;
+  
+    const waliKelasInfo = document.createElement('p');
+    waliKelasInfo.className = 'wali';
+    waliKelasInfo.textContent = `Wali Kelas: ${kelasData.nama_pegawai || 'Tidak Tersedia'}`;
+  
+    const dateLabel = document.createElement('label');
+    dateLabel.className = 'kalender';
+    dateLabel.setAttribute('for', 'attendance-date');
+    
+    const labelText = document.createTextNode('Pilih Tanggal: ');
+    dateLabel.appendChild(labelText);
+  
+    const dateInput = document.createElement('input');
+    dateInput.type = 'date';
+    dateInput.id = 'attendance-date';
+    dateInput.name = 'attendance-date';
+    dateInput.value = new Date().toISOString().split('T')[0];
+    dateInput.className = 'kalenderBox';
+    
+    dateLabel.appendChild(dateInput);  
+    document.body.appendChild(dateLabel);
+  
+    // Add event listener after the element is created
+    dateInput.addEventListener('change', async () => {
+      const selectedDate = dateInput.value;
+      await fetchAbsensiData(kelasData.id, selectedDate);
+    });
+  
+    const academicYearInfo = document.createElement('p');
+    academicYearInfo.className = 'tahun';
+  
+    const semesterInfo = document.createElement('p');
+    semesterInfo.className = 'semester';
+  
+    const tahunAjaranId = kelasData.id_tahun_ajaran;
+    if (!tahunAjaranId) {
+      console.error('ID Tahun Ajaran tidak tersedia di kelasData:', kelasData);
+      academicYearInfo.textContent = 'Tahun Ajaran Tidak Tersedia';
+      semesterInfo.textContent = 'Semester Tidak Tersedia';
+    } else {
+      try {
+        const tahunAjaranResponse = await fetch(`/api/tahun-ajaran/${tahunAjaranId}`);
+        if (tahunAjaranResponse.ok) {
+          const tahunAjaranData = await tahunAjaranResponse.json();
+          academicYearInfo.textContent = `Tahun Ajaran: ${tahunAjaranData.tahun_ajaran}`;
+          semesterInfo.textContent = `Semester: ${tahunAjaranData.semester}`;
+        } else {
+          console.error('Gagal mendapatkan Tahun Ajaran:', tahunAjaranResponse.statusText);
+          academicYearInfo.textContent = 'Tahun Ajaran Tidak Ditemukan';
+          semesterInfo.textContent = 'Semester Tidak Ditemukan';
+        }
+      } catch (error) {
+        console.error('Error fetching Tahun Ajaran:', error);
+        academicYearInfo.textContent = 'Gagal memuat Tahun Ajaran';
+        semesterInfo.textContent = 'Gagal memuat Semester';
+      }
+    }
+  
+    // Tambahkan elemen ke dalam header
+    kelasHeader.appendChild(kelasInfo);
+    kelasHeader.appendChild(waliKelasInfo);
+    kelasHeader.appendChild(semesterInfo);
+    kelasHeader.appendChild(academicYearInfo);
+    kelasHeader.appendChild(dateLabel);
   }
-
-  // Tambahkan elemen ke dalam header
-  kelasHeader.appendChild(kelasInfo);
-  kelasHeader.appendChild(waliKelasInfo);
-  kelasHeader.appendChild(semesterInfo);
-  kelasHeader.appendChild(academicYearInfo);
-  kelasHeader.appendChild(dateLabel);
-}
-
+  
 // fungsi untuk memfilter sesuai tanggal yang dipilih di kalender
 function displayAbsensiData(absensiData) {
   const absensiContainer = document.getElementById('absensi-container');
@@ -171,7 +170,31 @@ function displayAbsensiData(absensiData) {
 
   absensiContainer.appendChild(table);
 }
-
+async function fetchAbsensiData(kelasId, selectedDate) {
+    try {
+      const response = await fetch(`http://localhost:3000/api/absensi/${kelasId}/${selectedDate}`);
+      if (!response.ok) throw new Error("Gagal memuat data absensi");
+  
+      const absensiData = await response.json();
+      console.log("Data absensi:", absensiData);
+  
+      if (absensiData && absensiData.length > 0) {
+        document.getElementById('save-button').textContent = 'Edit Absensi';
+      } else {
+        document.getElementById('save-button').textContent = 'Simpan Absensi';
+      }
+  
+      // Mengambil data kelas dan menampilkan header setelah mendapatkan absensi
+      const kelasResponse = await fetch(`/api/kelas/${kelasId}`);
+      const kelasData = await kelasResponse.json();
+      displayKelasHeader(kelasData);  // Memanggil kembali displayKelasHeader dengan kelasData
+    } catch (error) {
+      console.error("Error fetching absensi:", error);
+      alert("Gagal memuat data absensi.");
+    }
+  }
+  
+  
 function displayAbsensi(siswaList) {
   const tableBody = document.getElementById('siswa-tbody-absensi');
   tableBody.innerHTML = '';  
@@ -257,6 +280,9 @@ function displayAbsensi(siswaList) {
     });
   });
 }
+
+
+
 
 const saveAbsensi = async () => {
   const id_kelas = await getIdKelas(); 
