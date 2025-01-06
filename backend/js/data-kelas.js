@@ -172,25 +172,26 @@ document.getElementById('add-kelas-btn').addEventListener('click', function () {
             Swal.fire({
                 title: 'Tambah Kelas',
                 html: `
-                    <input id="kelas-name" class="swal2-input" placeholder="Nama Kelas" required>
-                    <select id="pegawai-select" class="swal2-input" required>
-                        <option value="" disabled selected>Pilih Pegawai</option>
-                        ${pegawaiOptions}
-                    </select>
-                    <select id="tahun-ajaran-select" class="swal2-input" required>
-                        <option value="" disabled selected>Pilih Tahun Ajaran</option>
-                        ${tahunAjaranOptions}
-                    </select>
-                    <select id="tingkatan-select" class="swal2-input" required>
-                        <option value="" disabled selected>Pilih Tingkatan</option>
-                        ${tingkatanOptions}
-                    </select>
-                `,
+                <input id="kelas-name" class="swal2-input" placeholder="Nama Kelas" required>
+                <select id="pegawai-select" class="swal2-input" required>
+                    <option value="" disabled selected>Pilih Pegawai</option>
+                    ${pegawaiOptions}
+                </select>
+                <select id="tahun-ajaran-select" class="swal2-input" required>
+                    <option value="" disabled selected>Pilih Tahun Ajaran</option>
+                    ${tahunAjaranOptions}
+                </select>
+                <select id="tingkatan-select" class="swal2-input" required>
+                    <option value="" disabled selected>Pilih Tingkatan</option>
+                    ${tingkatanOptions}
+                </select>
+            `,
                 focusConfirm: false,
                 showCancelButton: true,
                 confirmButtonText: 'Tambah',
                 confirmButtonColor: '#004D40',
                 cancelButtonText: 'Batal',
+                cancelButtonColor: '#c00a0a',
                 preConfirm: () => {
                     const kelasName = document.getElementById('kelas-name').value.trim();
                     const pegawaiId = document.getElementById('pegawai-select').value;
@@ -202,26 +203,41 @@ document.getElementById('add-kelas-btn').addEventListener('click', function () {
                         return null; // Tidak memproses jika ada yang kosong
                     }
 
-                    const kelasData = {
-                        nama_kelas: kelasName,
-                        pegawai_id: pegawaiId,
-                        tahun_ajaran_id: tahunAjaranId,
-                        tingkatan: tingkatan,
-                    };
-
-                    // Kembalikan promise untuk diproses
-                    return fetch('/api/kelas', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(kelasData),
-                    })
-                        .then(response => {
-                            if (!response.ok) {
-                                return response.json().then(err => {
-                                    throw new Error(err.message || 'Gagal menambahkan kelas.');
+                    // Mengecek apakah pegawai sudah terdaftar pada tahun ajaran yang dipilih
+                    return fetch(`/api/cek-pegawai-terdaftar?pegawai_id=${pegawaiId}&tahun_ajaran_id=${tahunAjaranId}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.isTerdaftar) {
+                                Swal.fire({
+                                    title: 'Peringatan!',
+                                    text: 'Pegawai ini sudah terdaftar di tahun ajaran yang dipilih.',
+                                    icon: 'warning',
+                                    confirmButtonColor: '#004D40'
                                 });
+                                throw new Error('Pegawai sudah terdaftar');
                             }
-                            return response.json();
+
+                            // Jika pegawai belum terdaftar, lanjutkan dengan menambah kelas
+                            const kelasData = {
+                                nama_kelas: kelasName,
+                                pegawai_id: pegawaiId,
+                                tahun_ajaran_id: tahunAjaranId,
+                                tingkatan: tingkatan,
+                            };
+
+                            return fetch('/api/kelas', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(kelasData),
+                            })
+                                .then(response => {
+                                    if (!response.ok) {
+                                        return response.json().then(err => {
+                                            throw new Error(err.message || 'Gagal menambahkan kelas.');
+                                        });
+                                    }
+                                    return response.json();
+                                });
                         });
                 }
             }).then(result => {
@@ -241,7 +257,6 @@ document.getElementById('add-kelas-btn').addEventListener('click', function () {
             });
         });
 });
-
 document.getElementById("kelas-tbody").addEventListener('click', (event) => {
     if (event.target.classList.contains('edit-button-kelas')) {
         const id = event.target.getAttribute('data-id-kelas');
@@ -310,9 +325,11 @@ function editKelas(id) {
                         </select>
                     `,
                         focusConfirm: false,
+                        showCancelButton: true,
+                        confirmButtonText: 'Tambah',
                         confirmButtonColor: '#004D40',
-                        cancelButtonColor: '#d33',
-                
+                        cancelButtonText: 'Batal',
+                        cancelButtonColor: '#c00a0a',
                         preConfirm: () => {
                             const kelasName = document.getElementById('kelas-name').value.trim();
                             const pegawaiId = document.getElementById('pegawai-select').value;
@@ -459,7 +476,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         </thead>
                         <tbody>
                         ${kelas.siswa && Array.isArray(kelas.siswa) && kelas.siswa.length > 0
-                        ? kelas.siswa.map((siswa, index) => `
+                            ? kelas.siswa.map((siswa, index) => `
                                 <tr>
                                     <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">
                                         <input type="checkbox" class="studentCheckbox" data-id="${siswa.nisn}" />
@@ -469,7 +486,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                     <td style="padding: 8px; border: 1px solid #ddd;">${siswa.nama_siswa}</td>
                                 </tr>
                             `).join('')
-                        : `<tr>
+                            : `<tr>
                                 <td colspan="4" style="padding: 8px; border: 1px solid #ddd; text-align: center;">
                                     Belum ada siswa dalam kelas ini.
                                 </td>
@@ -479,7 +496,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
                     <button id="deleteButton" class="btn btn-danger" style="display: none;">Hapus</button>
                 `;
-            
+
 
                     kelasDetailDiv.classList.remove('hidden');
                     document.getElementById('back-to-kelas').addEventListener('click', () => {
@@ -487,21 +504,52 @@ document.addEventListener('DOMContentLoaded', () => {
                         sembunyi.classList.remove('hidden');
                     });
 
+                    // Mendapatkan elemen-elemen yang diperlukan
                     const checkboxes = document.querySelectorAll('.studentCheckbox');
                     const selectAllCheckbox = document.getElementById('selectAll');
                     const deleteButton = document.getElementById('deleteButton');
 
+                    // Fungsi untuk memperbarui visibilitas tombol "Hapus"
                     function updateActionMenuVisibility() {
                         const anyChecked = Array.from(checkboxes).some(checkbox => checkbox.checked);
                         deleteButton.style.display = anyChecked ? 'inline-block' : 'none';
                     }
 
+                    // Menambahkan event listener untuk checkbox "Pilih Semua"
                     selectAllCheckbox.addEventListener('change', () => {
                         checkboxes.forEach(checkbox => {
                             checkbox.checked = selectAllCheckbox.checked;
                         });
                         updateActionMenuVisibility();
                     });
+
+                    // Menambahkan event listener untuk setiap checkbox siswa
+                    checkboxes.forEach(checkbox => {
+                        checkbox.addEventListener('change', () => {
+                            // Memeriksa apakah semua checkbox siswa dicentang
+                            const allChecked = Array.from(checkboxes).every(checkbox => checkbox.checked);
+                            // Memeriksa apakah ada checkbox siswa yang dicentang
+                            const anyChecked = Array.from(checkboxes).some(checkbox => checkbox.checked);
+
+                            // Menyesuaikan status checkbox "Pilih Semua"
+                            selectAllCheckbox.checked = allChecked;
+                            selectAllCheckbox.indeterminate = !allChecked && anyChecked;
+
+                            updateActionMenuVisibility();
+                        });
+                    });
+
+                    // Memperbarui status checkbox "Pilih Semua" saat halaman dimuat
+                    document.addEventListener('DOMContentLoaded', () => {
+                        const allChecked = Array.from(checkboxes).every(checkbox => checkbox.checked);
+                        const anyChecked = Array.from(checkboxes).some(checkbox => checkbox.checked);
+
+                        selectAllCheckbox.checked = allChecked;
+                        selectAllCheckbox.indeterminate = !allChecked && anyChecked;
+
+                        updateActionMenuVisibility();
+                    });
+
 
                     checkboxes.forEach(checkbox => {
                         checkbox.addEventListener('change', updateActionMenuVisibility);
@@ -513,12 +561,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         const selectedIds = Array.from(checkboxes)
                             .filter(checkbox => checkbox.checked)
                             .map(checkbox => checkbox.dataset.id);
-    
+
                         if (selectedIds.length === 0) {
                             Swal.fire('Peringatan', 'Tidak ada siswa yang dipilih.', 'warning');
                             return;
                         }
-    
+
                         Swal.fire({
                             title: 'Apakah Anda yakin?',
                             text: 'Siswa yang dipilih akan Dihapus.',
@@ -526,9 +574,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             showCancelButton: true,
                             confirmButtonColor: '#004D40',
                             cancelButtonColor: '#d33',
-                            confirmButtonText: 'Hapus',
-                            cancelButtonText: 'Batal',
-
+                            confirmButtonText: 'Ya, Hapus!',
                         }).then((result) => {
                             if (result.isConfirmed) {
                                 Promise.all(selectedIds.map(nisn => {
@@ -540,19 +586,19 @@ document.addEventListener('DOMContentLoaded', () => {
                                         body: JSON.stringify({ id_kelas: kelasId })
                                     });
                                 }))
-                                .then(responses => Promise.all(responses.map(response => response.json())))
-                                .then(results => {
-                                Swal.fire({
-                                title: 'Berhasil',
-                                text: 'Siswa berhasil dihapus dari kelas!',
-                                icon: 'success',
-                                confirmButtonColor: '#004D40'  // Ganti dengan warna yang diinginkan
-                                });
-                                    showKelasDetail(kelasId); // Segarkan detail kelas setelah update
-                                })
-                                .catch(error => {
-                                    Swal.fire('Gagal', 'Terjadi kesalahan saat memperbarui data siswa.', 'error');
-                                });
+                                    .then(responses => Promise.all(responses.map(response => response.json())))
+                                    .then(results => {
+                                        Swal.fire({
+                                            title: 'Berhasil',
+                                            text: 'Siswa berhasil dihapus dari kelas!',
+                                            icon: 'success',
+                                            confirmButtonColor: '#004D40'  // Ganti dengan warna yang diinginkan
+                                        });
+                                        showKelasDetail(kelasId); // Segarkan detail kelas setelah update
+                                    })
+                                    .catch(error => {
+                                        Swal.fire('Gagal', 'Terjadi kesalahan saat memperbarui data siswa.', 'error');
+                                    });
                             }
                         });
                     });
@@ -636,7 +682,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                             </thead>
                                             <tbody>
                                                 ${data.siswa && Array.isArray(data.siswa) && data.siswa.length > 0
-                                                    ? data.siswa.map((siswa, index) => `
+                                            ? data.siswa.map((siswa, index) => `
                                                         <tr>
                                                             <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">
                                                                 <input type="checkbox" class="siswa-select" value="${siswa.nisn}" />
@@ -646,24 +692,24 @@ document.addEventListener('DOMContentLoaded', () => {
                                                             <td style="padding: 8px; border: 1px solid #ddd;">${siswa.nama_siswa}</td>
                                                         </tr>
                                                     `).join('')
-                                                    : `<tr><td colspan="4" style="padding: 8px; border: 1px solid #ddd; text-align: center;">Tidak ada siswa yang tersedia.</td></tr>`
-                                                }
+                                            : `<tr><td colspan="4" style="padding: 8px; border: 1px solid #ddd; text-align: center;">Tidak ada siswa yang tersedia.</td></tr>`
+                                        }
                                             </tbody>
                                         </table>
                                     `,
                                     showCloseButton: true,
                                     confirmButtonText: 'Tutup',
-                                    confirmButtonColor: '#d33',
+                                    confirmButtonColor: '#004D40',
                                     willOpen: () => {
                                         const selectAllCheckbox = document.getElementById('selectAll');
                                         const siswaSelectCheckboxes = document.querySelectorAll('.siswa-select');
                                         const addButton = document.getElementById('addButton');
-                                
+
                                         function toggleAddButton() {
                                             const anyChecked = Array.from(siswaSelectCheckboxes).some(checkbox => checkbox.checked);
                                             addButton.style.display = anyChecked ? 'inline-block' : 'none';
                                         }
-                                
+
                                         selectAllCheckbox.addEventListener('change', (event) => {
                                             const isChecked = event.target.checked;
                                             siswaSelectCheckboxes.forEach(checkbox => {
@@ -671,7 +717,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                             });
                                             toggleAddButton(); // Update tombol Tambahkan
                                         });
-                                
+
                                         siswaSelectCheckboxes.forEach(checkbox => {
                                             checkbox.addEventListener('change', () => {
                                                 const allChecked = Array.from(siswaSelectCheckboxes).every(checkbox => checkbox.checked);
@@ -680,7 +726,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                                 toggleAddButton(); // Update tombol Tambahkan
                                             });
                                         });
-                                
+
                                         addButton.addEventListener('click', () => {
                                             const selectedNisn = Array.from(siswaSelectCheckboxes)
                                                 .filter(checkbox => checkbox.checked)
@@ -693,8 +739,9 @@ document.addEventListener('DOMContentLoaded', () => {
                                                     showCancelButton: true,
                                                     confirmButtonText: 'Ya, Tambahkan',
                                                     confirmButtonColor: '#004D40',
-                                                    cancelButtonColor: '#d33',
-                                                                                                cancelButtonText: 'Batal'
+                                                    cancelButtonText: 'Batal',
+                                                    cancelButtonColor: '#dc3545',
+
                                                 }).then((result) => {
                                                     if (result.isConfirmed) {
                                                         Promise.all(selectedNisn.map(nisn => {
@@ -706,19 +753,19 @@ document.addEventListener('DOMContentLoaded', () => {
                                                                 body: JSON.stringify({ id_kelas: kelas.id })
                                                             });
                                                         }))
-                                                        .then(responses => Promise.all(responses.map(response => response.json())))
-                                                        .then(data => {
-                                                            Swal.fire({
-                                                                title: 'Berhasil',
-                                                                text: 'Siswa berhasil ditambahkan ke kelas!',
-                                                                icon: 'success',
-                                                                confirmButtonColor: '#004D40'  // Ganti dengan warna yang diinginkan
+                                                            .then(responses => Promise.all(responses.map(response => response.json())))
+                                                            .then(data => {
+                                                                Swal.fire({
+                                                                    title: 'Berhasil',
+                                                                    text: 'Siswa berhasil ditambahkan ke kelas!',
+                                                                    icon: 'success',
+                                                                    confirmButtonColor: '#004D40'  // Ganti dengan warna yang diinginkan
                                                                 });
-                                                                                            showKelasDetail(kelas.id); // Refresh kelas setelah penambahan siswa
-                                                        })
-                                                        .catch(error => {
-                                                            Swal.fire('Error', `Terjadi kesalahan: ${error.message}`, 'error');
-                                                        });
+                                                                showKelasDetail(kelas.id); // Refresh kelas setelah penambahan siswa
+                                                            })
+                                                            .catch(error => {
+                                                                Swal.fire('Error', `Terjadi kesalahan: ${error.message}`, 'error');
+                                                            });
                                                     }
                                                 });
                                             } else {
@@ -727,7 +774,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                         });
                                     }
                                 });
-                                
+
                             })
                             .catch(error => {
                                 // Menampilkan tabel kosong jika gagal mengambil data

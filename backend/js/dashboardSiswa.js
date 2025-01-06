@@ -24,7 +24,7 @@ async function fetchSessionData() {
 
         const nameMessage = document.getElementById('employee-name-message');
         if (nameMessage) {
-            nameMessage.textContent = user.name || 'Tamu'; // Menggunakan 'Tamu' jika user.name undefined
+            nameMessage.textContent = user.name || 'Tamu'; 
         } else {
             console.error("Elemen dengan ID 'employee-name-message' tidak ditemukan.");
         }
@@ -306,7 +306,16 @@ async function fetchAbsensiDataBySiswa() {
 
     console.log('Data absensi tanpa duplikasi:', uniqueAbsensi);
 
-    // menampilkan semua data absensi tanpa duplikasi
+    // Mengurutkan data absensi berdasarkan tanggal secara ascending
+    uniqueAbsensi.sort((a, b) => {
+      const dateA = new Date(a.date); // Ubah tanggal menjadi objek Date
+      const dateB = new Date(b.date); // Ubah tanggal menjadi objek Date
+      return dateA - dateB; // Urutkan secara ascending
+    });
+
+    console.log('Data absensi setelah diurutkan:', uniqueAbsensi);
+
+    // menampilkan semua data absensi tanpa duplikasi dan urut
     displayAbsensi(uniqueAbsensi);
 
   } catch (error) {
@@ -352,19 +361,29 @@ async function fetchClassData(classId) {
     const classTeacherNameElement = document.getElementById('class-teacher-name');
     const academicYearElement = document.getElementById('academic-year');
     const semesterElement = document.getElementById('semester');
-    const studentNameElement = document.getElementById('student-name'); 
+    const studentNameElement = document.getElementById('student-name');
+
+    // Menambahkan styling langsung dari kelas CSS
+    const applyClassInfoStyle = (element) => {
+      element.classList.add('class-info');
+    };
 
     if (classNameElement && classTeacherNameElement && academicYearElement && semesterElement && studentNameElement) {
       classNameElement.textContent = `Kelas: ${classData.nama_kelas || 'Tidak Tersedia'}`;
       classTeacherNameElement.textContent = `Wali Kelas: ${classData.nama_pegawai || 'Tidak Tersedia'}`;
+
+      applyClassInfoStyle(classNameElement);
+      applyClassInfoStyle(classTeacherNameElement);
 
       const sessionResponse = await fetch('/api/session-siswa');
       if (sessionResponse.ok) {
         const userData = await sessionResponse.json();
         console.log('Data siswa dari sesi:', userData);
         studentNameElement.textContent = `Nama Siswa: ${userData.name || 'Tidak Tersedia'}`;
+        applyClassInfoStyle(studentNameElement);
       } else {
         studentNameElement.textContent = 'Nama Siswa Tidak Tersedia';
+        studentNameElement.classList.add('error-message'); // Styling error
       }
 
       const tahunAjaranId = classData.id_tahun_ajaran;
@@ -378,6 +397,9 @@ async function fetchClassData(classId) {
 
           academicYearElement.textContent = `Tahun Ajaran: ${tahunAjaranData.nama_tahun_ajaran || 'Tidak Tersedia'}`;
           semesterElement.textContent = `Semester: ${tahunAjaranData.semester || 'Tidak Tersedia'}`;
+
+          applyClassInfoStyle(academicYearElement);
+          applyClassInfoStyle(semesterElement);
         } else {
           academicYearElement.textContent = 'Tahun Ajaran Tidak Ditemukan';
           semesterElement.textContent = 'Semester Tidak Ditemukan';
@@ -392,7 +414,6 @@ async function fetchClassData(classId) {
     alert('Gagal memuat data kelas.');
   }
 }
-
 document.addEventListener('DOMContentLoaded', async () => {
   const nisn = await getUserNISN();
   if (nisn) {

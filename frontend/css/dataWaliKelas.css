@@ -70,3 +70,18 @@
     pointer-events: none;
     opacity: 0.5;
 }
+/* Kelas untuk styling elemen informasi kelas */
+.class-info {
+    font-size: 18px;
+    font-weight: 500;
+    color: #555;
+    margin-bottom: 15px;
+  }
+  
+  /* Kelas untuk styling error ketika nama siswa tidak tersedia */
+  .error-message {
+    color: #d9534f;
+    font-size: 18px;
+    font-weight: 500;
+  }
+  

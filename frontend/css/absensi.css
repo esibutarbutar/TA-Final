@@ -113,3 +113,102 @@ input[type="checkbox"]:disabled {
 input[type="checkbox"]:disabled:checked {
     background-color: #4CAF50; /* Warna hijau ketika checkbox checked dan disabled */
 }
+/* Styling untuk tombol Save dan Cancel */
+.save-button {
+  background-color: green;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  cursor: pointer;
+}
+
+.save-button:hover {
+  background-color: darkgreen;
+}
+
+.cancel-button {
+  background-color: red !important;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  cursor: pointer;
+}
+
+.cancel-button:hover {
+  background-color: darkred;
+}
+/* Styling untuk tombol Save dan Cancel */
+.btn-save {
+  background-color: #004D40 !important;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  cursor: pointer;
+}
+
+.btn-save:hover {
+  background-color: darkgreen;
+}
+
+.btn-cancel {
+  background-color: red;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  cursor: pointer;
+  display: none; /* Tombol Batal disembunyikan secara default */
+}
+
+.btn-cancel:hover {
+  background-color: darkred;
+}
+/* Styling untuk label kalender */
+.kalender {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 10px;
+  display: inline-block;
+}
+
+/* Styling untuk input date */
+.kalenderBox {
+  padding: 8px;
+  font-size: 16px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  background-color: #fff;
+  width: 200px;
+  display: inline-block;
+}
+
+/* Gaya saat hover atau fokus di input */
+.kalenderBox:focus {
+  border-color: #4CAF50; /* Warna border hijau saat fokus */
+  box-shadow: 0 0 5px rgba(0, 128, 0, 0.5); /* Memberikan efek bayangan */
+}
+
+/* Styling untuk elemen-elemen lain dalam kelas header */
+#kelas-header {
+  padding: 20px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.kelas, .wali, .tahun, .semester {
+  margin: 10px 0;
+  font-size: 16px;
+}
+
+.kelas {
+  font-weight: bold;
+  color: #333;
+}
+
+.wali {
+  color: #555;
+}
+
+.tahun, .semester {
+  color: #777;
+}

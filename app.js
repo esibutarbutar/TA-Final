@@ -446,6 +446,31 @@ app.post('/api/pegawai', (req, res, next) => {
     }
 });
 
+app.get('/api/check-wali', async (req, res) => {
+    const pegawaiId = req.query.pegawai_id; // Sesuai dengan query yang dikirim
+    const tahunAjaranId = req.query.tahun_ajaran_id;
+
+    try {
+        const [rows] = await db.execute(
+            `SELECT COUNT(*) AS count 
+             FROM kelas 
+             WHERE nip = ? AND id_tahun_ajaran = ?`,
+            [pegawaiId, tahunAjaranId]
+        );
+    
+        console.log('Hasil Query:', rows); // Log hasil query untuk debugging
+    
+        if (rows[0].count > 0) {
+            return res.status(200).json({ exists: true });
+        }
+    
+        res.status(200).json({ exists: false });
+    } catch (error) {
+        console.error('Error saat memeriksa wali:', error);
+        res.status(500).json({ message: 'Terjadi kesalahan pada server!' });
+    }
+    
+});
 
 app.put('/api/pegawai/:nip', async (req, res) => {
     const { nip } = req.params;
@@ -970,6 +995,37 @@ app.post('/api/kelas', async (req, res) => {
     } catch (err) {
         console.error('Error inserting data:', err);
         res.status(500).json({ success: false, message: 'Error inserting data', error: err.message });
+    }
+});
+
+
+app.get('/api/cek-pegawai-terdaftar', async (req, res) => {
+    const { pegawai_id, tahun_ajaran_id } = req.query;
+
+    // Validasi input
+    if (!pegawai_id || !tahun_ajaran_id) {
+        return res.status(400).json({ success: false, message: 'pegawai_id dan tahun_ajaran_id harus disertakan!' });
+    }
+
+    try {
+        // Query untuk memeriksa apakah pegawai sudah terdaftar di tahun ajaran yang dipilih
+        const checkQuery = `
+            SELECT COUNT(*) AS count
+            FROM kelas
+            WHERE nip = ? AND id_tahun_ajaran = ?
+        `;
+        const [result] = await db.query(checkQuery, [pegawai_id, tahun_ajaran_id]);
+
+        if (result[0].count > 0) {
+            // Pegawai sudah terdaftar di tahun ajaran tersebut
+            return res.status(200).json({ isTerdaftar: true });
+        } else {
+            // Pegawai belum terdaftar di tahun ajaran tersebut
+            return res.status(200).json({ isTerdaftar: false });
+        }
+    } catch (err) {
+        console.error('Error checking data:', err);
+        res.status(500).json({ success: false, message: 'Terjadi kesalahan saat memeriksa data', error: err.message });
     }
 });
 
