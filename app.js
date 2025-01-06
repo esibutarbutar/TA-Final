@@ -1232,8 +1232,6 @@ app.get('/api/mading-home', async (req, res) => {
     }
 });
 
-
-// Endpoint untuk menyimpan data absensi (tabel attendance)
 app.post('/api/save-attendance', async (req, res) => {
     try {
         const { id_kelas, date } = req.body;
@@ -1244,16 +1242,24 @@ app.post('/api/save-attendance', async (req, res) => {
             return res.status(400).json({ message: 'Missing required fields: id_kelas or date' });
         }
 
-        await db.query('INSERT INTO attendance (id_kelas, date) VALUES (?, ?)', [id_kelas, date]);
+        // Gunakan ON DUPLICATE KEY UPDATE untuk menangani insert/update
+        const query = `
+            INSERT INTO attendance (id_kelas, date)
+            VALUES (?, ?)
+            ON DUPLICATE KEY UPDATE date = VALUES(date)
+        `;
 
+        await db.query(query, [id_kelas, date]);
+
+        // Ambil ID setelah operasi insert/update
         const [rows] = await db.query('SELECT id FROM attendance WHERE id_kelas = ? AND date = ?', [id_kelas, date]);
 
         if (rows.length > 0) {
-            const newId = rows[0].id;
-            console.log("ID baru:", newId);
-            return res.json({ insertId: newId });
+            const existingId = rows[0].id;
+            console.log("ID yang dihasilkan atau diperbarui:", existingId);
+            return res.json({ id: existingId });
         } else {
-            return res.status(400).json({ message: 'Failed to retrieve new attendance ID' });
+            return res.status(400).json({ message: 'Failed to retrieve attendance ID' });
         }
     } catch (error) {
         console.error("Error in save-attendance:", error);
@@ -1264,20 +1270,36 @@ app.post('/api/save-attendance', async (req, res) => {
 // Endpoint untuk menyimpan detail absensi (tabel attendanceDetails)
 app.post('/api/save-attendance-details', async (req, res) => {
     try {
-        const { absensiId, absensiData } = req.body;
+        const { id_kelas, date, absensiData } = req.body;
 
-        if (!absensiId || !Array.isArray(absensiData)) {
+        if (!id_kelas || !date || !Array.isArray(absensiData)) {
             return res.status(400).json({ message: 'Missing or invalid data' });
         }
 
-        console.log("Absensi ID:", absensiId);
-        console.log("Data Absensi:", absensiData);
+        // Cek apakah absensi untuk id_kelas dan tanggal ini sudah ada
+        const [existingAttendance] = await db.query(
+            'SELECT id FROM attendance WHERE id_kelas = ? AND date = ?',
+            [id_kelas, date]
+        );
 
-        const values = absensiData.map(item => [absensiId, item.nisn, item.status]);
+        let attendanceId;
+        if (existingAttendance.length > 0) {
+            // Jika ada, gunakan ID absensi yang sudah ada
+            attendanceId = existingAttendance[0].id;
+        } else {
+            // Jika belum ada, buat data absensi baru
+            const [insertResult] = await db.query(
+                'INSERT INTO attendance (id_kelas, date) VALUES (?, ?)',
+                [id_kelas, date]
+            );
+            attendanceId = insertResult.insertId;
+        }
 
-        const [result] = await db.query(
+        // Masukkan atau perbarui detail absensi
+        const values = absensiData.map(item => [attendanceId, item.nisn, item.status]);
+        await db.query(
             `
-            INSERT INTO attendanceDetails (id_attendance, nisn, status)
+            INSERT INTO attendancedetails (id_attendance, nisn, status)
             VALUES ?
             ON DUPLICATE KEY UPDATE
                 status = VALUES(status)
@@ -1285,20 +1307,49 @@ app.post('/api/save-attendance-details', async (req, res) => {
             [values]
         );
 
-        if (result.affectedRows === 0) {
-            throw new Error("Failed to insert or update attendance details");
-        }
-
-        res.json({ message: 'Attendance details saved successfully', result });
+        res.json({
+            message: 'Attendance details processed successfully',
+        });
     } catch (error) {
-        console.error("Error saving attendance details:", error);
+        console.error('Error processing attendance details:', error);
         res.status(500).json({ message: 'Internal Server Error', error });
     }
 });
+app.put('/api/update-attendance-details', async (req, res) => {
+    const { kelasId, date } = req.query;
+    const { absensiData } = req.body;
 
+    // Validasi parameter
+    if (!kelasId || !date || !Array.isArray(absensiData) || absensiData.length === 0) {
+        return res.status(400).json({ message: 'kelasId, date, and absensiData are required.' });
+    }
+
+    try {
+        // Ambil attendanceId berdasarkan kelasId dan date
+        const absensiId = await getAttendanceIdByClassAndDate(kelasId, date);
+
+        // Update status absensi
+        const result = await updateStatusAbsensi(absensiId, absensiData);
+
+        if (result.success) {
+            return res.json(result);  // Mengirimkan hasil update
+        } else {
+            return res.status(500).json({
+                message: result.message || 'Error updating attendance status',
+                error: result.error || 'Unknown error',
+            });
+        }
+    } catch (error) {
+        console.error('Error while updating attendance:', error);
+        return res.status(500).json({
+            message: 'Failed to update attendance status',
+            error: error.message,
+        });
+    }
+});
 // Endpoint untuk mengambil data absensi (tabel attendanceDetails) dari data-absensi
 app.get('/api/attendance-details', async (req, res) => {
-   try {
+    try {
         const { kelasId, date } = req.query;
 
         // Validasi input
@@ -1308,44 +1359,73 @@ app.get('/api/attendance-details', async (req, res) => {
 
         console.log("Mengambil data absensi untuk:", { kelasId, date });
 
+        // Cek data absensi
         const [results] = await db.query(
             `
             SELECT ad.id_attendance, ad.nisn, ad.status, s.nama_siswa
             FROM attendanceDetails AS ad
             INNER JOIN attendance AS a ON ad.id_attendance = a.id
-            LEFT JOIN siswa AS s ON s.nisn = ad.nisn  -- Menggunakan LEFT JOIN
+            LEFT JOIN siswa AS s ON s.nisn = ad.nisn
             WHERE a.id_kelas = ? AND a.date = ?;
-
             `,
             [kelasId, date]
         );
 
         if (results.length > 0) {
             console.log("Data absensi ditemukan:", results);
-            return res.json({ attendanceDetails: results }); 
-        } else {
-            console.log("Tidak ada data absensi ditemukan.");
-            return res.json({ attendanceDetails: [] }); 
+            return res.json({ attendanceDetails: results });
         }
+
+        // Jika absensi tidak ditemukan, ambil data siswa saja
+        console.log("Data absensi tidak ditemukan, mengambil data siswa.");
+        const [siswaResults] = await db.query(
+            `
+            SELECT s.nisn, s.nama_siswa
+            FROM siswa AS s
+            WHERE s.id_kelas = ?;
+            `,
+            [kelasId]
+        );
+
+        return res.json({
+            attendanceDetails: siswaResults.map(siswa => ({
+                id_attendance: null,
+                nisn: siswa.nisn,
+                nama_siswa: siswa.nama_siswa,
+                status: null, // Status kosong karena belum ada absensi
+            }))
+        });
     } catch (error) {
         console.error("Error fetching attendance details:", error);
         return res.status(500).json({ message: 'Gagal memuat data absensi', error });
     }
 });
 
+
 app.put('/api/update-attendance-details', async (req, res) => {
     const { absensiId, absensiData } = req.body;
 
-    // Memanggil fungsi untuk memperbarui status absensi
-    const result = await updateStatusAbsensi(absensiId, absensiData);
+    try {
+        // Call function to update attendance status
+        const result = await updateStatusAbsensi(absensiId, absensiData);
 
-    if (result.success) {
-        return res.json(result);
-    } else {
-        return res.status(500).json({ message: result.message, error: result.error });
+        if (result.success) {
+            return res.json(result);  // Return success response
+        } else {
+            return res.status(500).json({
+                message: result.message || 'Error updating attendance status',
+                error: result.error || 'Unknown error'
+            });
+        }
+    } catch (error) {
+        // Catch any errors that occur during the async operation
+        console.error("Error while updating attendance:", error);
+        return res.status(500).json({
+            message: 'Failed to update attendance status',
+            error: error.message
+        });
     }
 });
-
 //route untuk menampilkan absensi per siswa yg login yang sudah guru wali kelas simpan
 app.get('/api/attendance-details-siswa', async (req, res) => {
     try {
@@ -1404,6 +1484,43 @@ app.get('/api/attendance-details-siswa', async (req, res) => {
         return res.status(500).json({ message: 'Gagal memuat data absensi', error });
     }
 });
+app.post('/api/update-attendance', async (req, res) => {
+    const { absensiId, absensiData } = req.body;
+    
+    if (!absensiId || !Array.isArray(absensiData) || absensiData.length === 0) {
+        return res.status(400).json({ message: 'Invalid data' });
+    }
+
+    try {
+        // Mengecek apakah absensi dengan ID yang diberikan sudah ada di database
+        const checkAbsensi = await db.query('SELECT * FROM attendanceDetails WHERE id_attendance = ?', [absensiId]);
+
+        if (checkAbsensi.length === 0) {
+            return res.status(404).json({ message: 'Absensi ID tidak ditemukan' });
+        }
+
+        // Menghapus data duplikat pada absensiData
+        const uniqueAbsensiData = removeDuplicateAbsensi(absensiData);
+
+        // Melakukan update pada setiap item absensi
+        const updatePromises = uniqueAbsensiData.map(item => {
+            return db.query(
+                'UPDATE attendanceDetails SET status = ? WHERE id_attendance = ? AND nisn = ?',
+                [item.status, absensiId, item.nisn]
+            );
+        });
+
+        // Menunggu semua update selesai
+        await Promise.all(updatePromises);
+
+        res.json({ message: 'Attendance updated successfully' });
+
+    } catch (error) {
+        console.error('Error updating attendance:', error);
+        res.status(500).json({ message: 'Gagal memperbarui data absensi' });
+    }
+});
+
 
 // endpoint untuk lupa pasword yang membedakannya itu role (pegawai/siswa)
 //berada di file lupapassword.html
@@ -2367,24 +2484,22 @@ app.post('/forgot-password', async (req, res) => {
 app.get('/api/absensi/:kelasId/:tanggal', async (req, res) => {
     const { kelasId, tanggal } = req.params;
   
-    // Validasi input
     if (!kelasId || !tanggal) {
       return res.status(400).json({ message: 'Parameter kelasId dan tanggal wajib diisi.' });
     }
   
     try {
-      // Menyusun query untuk mengambil data absensi
       const query = 'SELECT * FROM attendance WHERE id_kelas = ? AND date = ?';
       const [rows] = await db.execute(query, [kelasId, tanggal]);
   
       if (rows.length > 0) {
-        return res.status(200).json(rows);  // Mengembalikan data absensi jika ditemukan
+        return res.status(200).json(rows); 
       } else {
-        return res.status(204).json({ message: "Tidak ada data absensi untuk tanggal ini" });  // Jika tidak ada data
+        return res.status(204).json({ message: "Tidak ada data absensi untuk tanggal ini" });  
       }
     } catch (error) {
       console.error('Error fetching absensi:', error);
-      res.status(500).json({ message: "Gagal memuat data absensi" });  // Menangani error
+      res.status(500).json({ message: "Gagal memuat data absensi" }); 
     }
   });  
 

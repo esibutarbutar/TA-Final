@@ -103,3 +103,13 @@
     transition: all 0.3s ease;
 }
 
+input[type="checkbox"]:disabled {
+    background-color: #4CAF50; /* Warna hijau untuk checkbox disabled */
+    border-color: #4CAF50; /* Warna border juga hijau */
+    cursor: not-allowed; /* Menunjukkan bahwa checkbox tidak dapat diubah */
+}
+
+/* Menambahkan gaya pada checkbox untuk memberi efek lebih baik saat disabled */
+input[type="checkbox"]:disabled:checked {
+    background-color: #4CAF50; /* Warna hijau ketika checkbox checked dan disabled */
+}

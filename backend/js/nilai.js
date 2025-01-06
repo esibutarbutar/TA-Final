@@ -280,7 +280,7 @@ function displayGrades(gradesData, jenisNilai = '') {
         const saveButton = document.createElement("button");
         saveButton.textContent = "Simpan Nilai";
         saveButton.id = "save-button";
-        saveButton.addEventListener("click", saveAllGrades); // Simpan semua nilai yang belum diinput
+        saveButton.addEventListener("click", SaveNilai); // Simpan semua nilai yang belum diinput
         saveButtonCell.appendChild(saveButton);
         saveButtonRow.appendChild(saveButtonCell);
         tbody.appendChild(saveButtonRow);
@@ -300,7 +300,7 @@ function displayGrades(gradesData, jenisNilai = '') {
         tbody.appendChild(editButtonRow);
     }
 }
-function saveAllGrades() {
+function SaveNilai() {
     const nilaiInputs = document.querySelectorAll('.nilai-input');
     const gradesData = [];
     let isAllFilled = true;
@@ -360,26 +360,17 @@ function saveAllGrades() {
             Swal.fire({
                 icon: 'success',
                 title: 'Nilai Berhasil Disimpan!',
-                text: data.message
+                text: data.message,
+                confirmButtonColor: '#004D40',
+
             }).then(() => {
                 const saveButton = document.getElementById("save-button");
                 if (saveButton) {
                     saveButton.style.display = "none";  // Sembunyikan tombol simpan setelah berhasil
                 }
 
-                const tbody = document.querySelector("tbody");
-                const editButtonRow = document.createElement("tr");
-                const editButtonCell = document.createElement("td");
-                editButtonCell.colSpan = 8;  // Menyesuaikan dengan jumlah kolom
-                editButtonCell.style.textAlign = "right";  // Letakkan tombol di kanan
-
-                const editButton = document.createElement("button");
-                editButton.textContent = "Edit Nilai";
-                editButton.addEventListener("click", editGrades);  // Menambahkan event listener untuk mengedit nilai
-
-                editButtonCell.appendChild(editButton);
-                editButtonRow.appendChild(editButtonCell);
-                tbody.appendChild(editButtonRow);
+                // Langsung memanggil filterGrades agar tombol edit muncul
+                filterGrades();
 
                 // Nonaktifkan input setelah simpan
                 const nilaiCells = document.querySelectorAll("td");

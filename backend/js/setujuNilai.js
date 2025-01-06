@@ -114,13 +114,13 @@ async function fetchGrades(kelasId, mapelId) {
         console.log("Data nilai:", gradesData);
 
         // Tampilkan data nilai di tabel
-        displayGrades(gradesData);
+        TampilkanNilai(gradesData);
     } catch (error) {
         console.error("Error:", error);
         alert("Gagal memuat data nilai.");
     }
 }
-function displayGrades(gradesData) {
+function TampilkanNilai(gradesData) {
     const tbody = document.getElementById("nilai-tbody");
     tbody.innerHTML = ''; // Bersihkan tabel sebelumnya
 
