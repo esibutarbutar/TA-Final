@@ -58,7 +58,7 @@
                         <div class="profile-picture">
                             <!-- Menampilkan huruf pertama dari nama pengguna -->
                             <span id="profile-initial">T</span>
-                            <i id="camera-icon" class="fas fa-camera"></i>                    </div>
+                        </div>
                         <hr class="profile-divider">
                         <div class="profile-details">
                             <div class="bio-item">
@@ -136,15 +136,32 @@
                     </table>
                 </section>
                 <section id="absensi" class="content-section hidden">
-                    <h2>Data Absen </h2>
-                    
-                </section>
-                
+                    <h2>Absensi</h2>
+                    <div id="siswa-header">
+                      <p id="student-name"></p>
+                      <p id="class-name"></p>
+                      <p id="class-teacher-name"></p>
+                      <p id="semester"></p>
+                      <p id="academic-year"></p>
+                    </div>
+                    <table id="absensi-table">
+                        <thead>
+                            <tr>
+                                <th>Tanggal</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Absensi data akan ditambahkan di sini -->
+                        </tbody>
+                    </table>
+                </section> 
                
             </main>
     </div>
     <script src="/js/dashboardSiswa.js"></script>
     <script src="/js/viewNilaiSiswa.js"></script>
+    <script src="/js/pop-up-menu.js"></script>
 
 </body>
 

@@ -155,31 +155,32 @@ app.post('/api/login', async (req, res) => {
                 req.session.user = {
                     id: user[0].nisn, // Pastikan nama kolom sesuai
                     name: user[0].nama_siswa, // Sesuaikan dengan kolom di tabel siswa
-                    role: 'Siswa', // Tambahkan role untuk siswa
+                    role: 'Siswa', // Role siswa
                     login_sebagai: login_sebagai,
                     tempat_lahir: user[0].tempat_lahir,
                     tanggal_lahir: user[0].tanggal_lahir,
                     nik: user[0].nik,
-
+                    agama: user[0].agama,
+                    nama_ayah: user[0].nama_ayah,
+                    nama_ibu: user[0].nama_ibu,
+                    no_hp_ortu: user[0].no_hp_ortu,
+                    email: user[0].email,
+                    anak_ke: user[0].anak_ke,
+                    status: user[0].status,
+                    tanggal_masuk: user[0].tanggal_masuk,
+                    last_password_update: user[0].last_password_update,
+                    profile_image: user[0].profile_image,
+                    id_kelas: user[0].id_kelas,
+                    jenis_kelamin: user[0].jenis_kelamin
                 };
                 console.log("Session after login (Siswa):", req.session.user);
                 res.status(200).json({
                     message: 'Login berhasil',
-                    user: {
-                        id: user[0].id,
-                        name: user[0].nama_siswa,
-                        role: 'Siswa', // Tambahkan role untuk siswa
-                        login_sebagai: login_sebagai,
-                        tempat_lahir: user[0].tempat_lahir,
-                        tanggal_lahir: user[0].tanggal_lahir,
-                        nik: user[0].nik,
-
-                    }
+                    user: req.session.user
                 });
-            
-            
             } else {
                 res.status(401).json({ message: 'Password salah' });
+              res.status(401).json({ message: 'Password salah' });
             }
         } else {
             res.status(404).json({ message: `${login_sebagai} tidak ditemukan` });
@@ -324,16 +325,26 @@ app.get('/api/session-siswa', (req, res) => {
         res.json({
             name: req.session.user.name || 'Tidak tersedia',
             tempat_lahir: req.session.user.tempat_lahir || 'Tidak tersedia',
-            tanggal_lahir: req.session.user.tanggal_lahir ? formatDate(req.session.user.tanggal_lahir) : 'Tidak tersedia',
-            nisn: req.session.user.nisn || 'Tidak tersedia',
             nisn: req.session.user.id || 'Tidak tersedia',
+            tanggal_lahir: req.session.user.tanggal_lahir ? formatDate(req.session.user.tanggal_lahir) : 'Tidak tersedia',
+            nik: req.session.user.nik || 'Tidak tersedia',
+            jenis_kelamin: req.session.user.jenis_kelamin || 'Tidak tersedia',
+            agama: req.session.user.agama || 'Tidak tersedia',
+            nama_ayah: req.session.user.nama_ayah || 'Tidak tersedia',
+            nama_ibu: req.session.user.nama_ibu || 'Tidak tersedia',
+            no_hp_ortu: req.session.user.no_hp_ortu || 'Tidak tersedia',
+            email: req.session.user.email || 'Tidak tersedia',
+            anak_ke: req.session.user.anak_ke || 'Tidak tersedia',
+            status: req.session.user.status || 'Tidak tersedia',
+            tanggal_masuk: req.session.user.tanggal_masuk ? formatDate(req.session.user.tanggal_masuk) : 'Tidak tersedia',
+            last_password_update: req.session.user.last_password_update ? formatDate(req.session.user.last_password_update) : 'Tidak tersedia',
+            profile_image: req.session.user.profile_image || 'Tidak tersedia',
+            id_kelas: req.session.user.id_kelas || 'Tidak tersedia'
         });
     } else {
         res.status(401).json({ message: 'User not logged in' });  // Pastikan sesi benar-benar ada
     }
 });
-
-
 app.get('/api/pegawai', async (req, res) => {
     try {
         const query = 'SELECT * FROM pegawai';  // Menyesuaikan query dengan struktur database Anda
