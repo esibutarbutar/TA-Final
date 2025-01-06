@@ -247,127 +247,154 @@ function displayAbsensi(siswaList) {
 const saveButton = document.getElementById("save-button");
 
 saveButton.addEventListener("click", async () => {
-    const mode = saveButton.getAttribute("data-mode");
+  const mode = saveButton.getAttribute("data-mode");
+  const id_kelas = await getIdKelas();
+  
+  if (!id_kelas) {
+      Swal.fire({
+          icon: 'error',
+          title: 'ID Kelas tidak ditemukan!',
+          text: 'Silakan periksa kembali data kelas.',
+      });
+      return;
+  }
 
-    const id_kelas = await getIdKelas();
-    if (!id_kelas) {
-        Swal.fire({
-            icon: 'error',
-            title: 'ID Kelas tidak ditemukan!',
-            text: 'Silakan periksa kembali data kelas.',
-        });
-        return;
-    }
+  // Ambil tanggal yang dipilih
+  const selectedDate = document.getElementById("attendance-date").value;
 
-    const date = new Date().toISOString().split('T')[0];
+  // Cek apakah tanggal yang dipilih lebih besar dari hari ini
+  const today = new Date();
+  const sevenDaysAgo = new Date(today);
+  sevenDaysAgo.setDate(today.getDate() - 7);
 
-    try {
-        if (mode === 'edit') {
-            // Aktifkan checkbox untuk edit
-            const checkboxes = document.querySelectorAll('input[type="checkbox"]');
-            checkboxes.forEach(checkbox => {
-                checkbox.disabled = false;
-            });
-            saveButton.textContent = "Simpan";
-            saveButton.setAttribute("data-mode", "save");
-        } else if (mode === 'save') {
-            // Kumpulkan data absensi
-            const absensiData = [];
-            const checkboxes = document.querySelectorAll('input[type="checkbox"]:checked');
-            checkboxes.forEach(checkbox => {
-                if (checkbox.name && checkbox.name.includes('[') && checkbox.name.includes(']')) {
-                    const nisn = checkbox.name.split('[')[1].split(']')[0];
-                    const status = checkbox.value;
-                    absensiData.push({
-                        nisn: nisn,
-                        status: status,
-                        id_kelas: id_kelas,
-                        date: date
-                    });
-                }
-            });
+  const selectedDateObj = new Date(selectedDate);
 
-            if (absensiData.length === 0) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Tidak ada data absensi yang dipilih!',
-                    text: 'Silakan pilih data absensi terlebih dahulu.',
-                });
-                return;
-            }
+  // Cek apakah tanggal yang dipilih lebih dari 7 hari yang lalu
+  if (selectedDateObj > today) {
+      Swal.fire({
+          icon: 'error',
+          title: 'Tanggal tidak valid!',
+          text: 'Anda tidak dapat memilih tanggal di masa depan untuk absensi.',
+      });
+      return;
+  }
 
-            // Hilangkan data duplikat
-            const uniqueAbsensiData = removeDuplicateAbsensi(absensiData);
+  if (selectedDateObj < sevenDaysAgo) {
+      Swal.fire({
+          icon: 'error',
+          title: 'Tanggal tidak valid!',
+          text: 'Anda hanya bisa mengedit absensi dalam rentang 7 hari terakhir.',
+      });
+      return;
+  }
 
-            // Simpan atau update absensi
-            let attendanceResponse = await fetch("http://localhost:3000/api/save-attendance", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    id_kelas: id_kelas,
-                    date: date
-                }),
-            });
+  const date = selectedDate; // Gunakan tanggal yang dipilih
 
-            if (!attendanceResponse.ok) {
-                const errorDetails = await attendanceResponse.json();
-                console.error("Error from save-attendance API:", errorDetails);
-                throw new Error(errorDetails.message || "Gagal menyimpan data absensi kelas");
-            }
+  try {
+      if (mode === 'edit') {
+          // Aktifkan checkbox untuk edit
+          const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+          checkboxes.forEach(checkbox => {
+              checkbox.disabled = false;
+          });
+          saveButton.textContent = "Simpan";
+          saveButton.setAttribute("data-mode", "save");
+      } else if (mode === 'save') {
+          // Kumpulkan data absensi
+          const absensiData = [];
+          const checkboxes = document.querySelectorAll('input[type="checkbox"]:checked');
+          checkboxes.forEach(checkbox => {
+              if (checkbox.name && checkbox.name.includes('[') && checkbox.name.includes(']')) {
+                  const nisn = checkbox.name.split('[')[1].split(']')[0];
+                  const status = checkbox.value;
+                  absensiData.push({
+                      nisn: nisn,
+                      status: status,
+                      id_kelas: id_kelas,
+                      date: date
+                  });
+              }
+          });
 
-            const attendanceResult = await attendanceResponse.json();
-            const attendanceId = attendanceResult.id || attendanceResult.insertId;
+          if (absensiData.length === 0) {
+              Swal.fire({
+                  icon: 'warning',
+                  title: 'Tidak ada data absensi yang dipilih!',
+                  text: 'Silakan pilih data absensi terlebih dahulu.',
+              });
+              return;
+          }
 
-            if (!attendanceId) {
-                throw new Error("ID Absensi tidak ditemukan dalam response.");
-            }
+          // Hilangkan data duplikat
+          const uniqueAbsensiData = removeDuplicateAbsensi(absensiData);
 
-            // Simpan detail absensi
-            const detailsResponse = await fetch("http://localhost:3000/api/save-attendance-details", {
+          // Simpan atau update absensi
+          let attendanceResponse = await fetch("http://localhost:3000/api/save-attendance", {
               method: "POST",
               headers: {
                   "Content-Type": "application/json",
               },
               body: JSON.stringify({
                   id_kelas: id_kelas,
-                  date: date,
-                  absensiData: uniqueAbsensiData,
+                  date: date
               }),
           });
-          
 
-            if (!detailsResponse.ok) {
-                const errorDetails = await detailsResponse.json();
-                console.error("Error from save-attendance-details API:", errorDetails);
-                throw new Error(errorDetails.message || "Gagal menyimpan data detail absensi");
-            }
+          if (!attendanceResponse.ok) {
+              const errorDetails = await attendanceResponse.json();
+              console.error("Error from save-attendance API:", errorDetails);
+              throw new Error(errorDetails.message || "Gagal menyimpan data absensi kelas");
+          }
 
-            Swal.fire({
-                icon: 'success',
-                title: 'Data absensi berhasil disimpan!',
-                text: 'Data absensi telah berhasil disimpan.',
-                confirmButtonColor: '#004D40',
-            });
+          const attendanceResult = await attendanceResponse.json();
+          const attendanceId = attendanceResult.id || attendanceResult.insertId;
 
-            // Refresh data absensi
-            fetchAbsensiData(id_kelas, date);
+          if (!attendanceId) {
+              throw new Error("ID Absensi tidak ditemukan dalam response.");
+          }
 
-            // Kembali ke mode Edit
-            saveButton.textContent = "Edit";
-            saveButton.setAttribute("data-mode", "edit");
-        }
-    } catch (error) {
-        console.error("Error:", error);
-        Swal.fire({
-            icon: 'error',
-            title: 'Gagal menyimpan data absensi!',
-            text: 'Terjadi kesalahan dalam menyimpan data absensi.',
+          // Simpan detail absensi
+          const detailsResponse = await fetch("http://localhost:3000/api/save-attendance-details", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                id_kelas: id_kelas,
+                date: date,
+                absensiData: uniqueAbsensiData,
+            }),
         });
-    }
-});
 
+          if (!detailsResponse.ok) {
+              const errorDetails = await detailsResponse.json();
+              console.error("Error from save-attendance-details API:", errorDetails);
+              throw new Error(errorDetails.message || "Gagal menyimpan data detail absensi");
+          }
+
+          Swal.fire({
+              icon: 'success',
+              title: 'Data absensi berhasil disimpan!',
+              text: 'Data absensi telah berhasil disimpan.',
+              confirmButtonColor: '#004D40',
+          });
+
+          // Refresh data absensi
+          fetchAbsensiData(id_kelas, date);
+
+          // Kembali ke mode Edit
+          saveButton.textContent = "Edit";
+          saveButton.setAttribute("data-mode", "edit");
+      }
+  } catch (error) {
+      console.error("Error:", error);
+      Swal.fire({
+          icon: 'error',
+          title: 'Gagal menyimpan data absensi!',
+          text: 'Terjadi kesalahan dalam menyimpan data absensi.',
+      });
+  }
+});
 async function updateStatusAbsensi(absensiId, absensiData) {
   try {
       if (!absensiId || !Array.isArray(absensiData) || absensiData.length === 0) {
