@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="/css/dataWaliKelas.css">
     <link rel="stylesheet" href="/css/dataNilai.css">
     <link rel="stylesheet" href="/css/absensi.css">
-
+    <link rel="stylesheet" href="/css/pop-up-menu.css">
     <link rel="stylesheet" href="/css/dashboardWalidanMatpel.css">
 
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
@@ -32,6 +32,12 @@
         <div class="profile">
             <i class="fas fa-user-circle" id="profile-icon"></i>  <!-- ID untuk ikon -->
             <span id="employee-name-header" class="employee-name">Tamu</span>
+        </div>
+        <div id="profile-menu" class="profile-menu">
+            <ul>
+                <li><a href="/reset-password-after-login">Ubah Kata Sandi</a></li>
+                <li><a href="/login">Keluar</a></li>
+            </ul>
         </div>
     </header>
     
@@ -182,45 +188,46 @@
                     <input type="text" id="search-siswa" placeholder="Cari siswa..." class="search-bar">
                     <i class="fas fa-search search-icon"></i>
                   </div>
-                  <button id="save-button" onclick="">Simpan Absensi</button>
+                  <button id="save-button" data-mode="save" class="btn-save">Simpan</button>
+                  <button id="cancel-button" class="btn-cancel">Batal</button>
 
                 </div>
               
                 <table border="1" id="siswa-container">
-                  <thead>
-                    <tr>
-                      <th>No</th>
-                      <th>Nama</th>
-                      <th>NISN</th>
-                      <th>
-                        Hadir <br> 
-                        <input type="checkbox" id="select-all-hadir"> Select All
-                      </th>
-                      <th>
-                        Izin <br> 
-                        <input type="checkbox" id="select-all-izin"> Select All
-                      </th>
-                      <th>
-                        Sakit <br> 
-                        <input type="checkbox" id="select-all-sakit"> Select All
-                      </th>
-                      <th>
-                        Alpa <br> 
-                        <input type="checkbox" id="select-all-alpa"> Select All
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody id="siswa-tbody-absensi">
-                  </tbody>
+                    <thead>
+                        <tr>
+                            <th>No</th>
+                            <th>Nama</th>
+                            <th>NISN</th>
+                            <th>
+                                Hadir <br>
+                                <input type="checkbox" id="select-all-hadir"> Select All
+                            </th>
+                            <th>
+                                Izin <br>
+                                <input type="checkbox" id="select-all-izin" class="select-all-checkbox"> Select All
+                            </th>
+                            <th>
+                                Sakit <br>
+                                <input type="checkbox" id="select-all-sakit" class="select-all-checkbox"> Select All
+                            </th>
+                            <th>
+                                Alpa <br>
+                                <input type="checkbox" id="select-all-alpa" class="select-all-checkbox"> Select All
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="siswa-tbody-absensi">
+                    </tbody>
                 </table>
               </section>
         </main>
     </div>
-    <script src="/js/dashboardWaliKelas.js"></script>
+    <script src="/js/dashboardGuruMatpeldanWaliKelas.js"></script>
     <script src="/js/setujuNilai.js"></script>
     <script src="/js/nilai.js"></script>
     <script src="/js/dataAbsensi.js"></script>
-
+    <script src="/js/pop-up-menu.js"></script>
 
 
 

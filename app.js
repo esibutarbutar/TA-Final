@@ -2570,6 +2570,253 @@ app.get('/api/absensi/:kelasId/:tanggal', async (req, res) => {
     }
   });  
 
+  app.post('/api/reset-password/:role', async (req, res) => {
+    const { role } = req.params;
+    const { email } = req.body;
+  
+    if (role !== 'pegawai' && role !== 'siswa') {
+      return res.status(400).json({ success: false, message: 'Role tidak valid' });
+    }
+
+    if (!email || !role) {
+    return res.status(400).json({ success: false, message: 'Email and Role are required' });
+  }
+  
+    const table = role === 'pegawai' ? 'pegawai' : 'siswa';
+    const nameColumn = role === 'pegawai' ? 'nama_pegawai' : 'nama_siswa';
+  
+    try {
+      const [results] = await db.execute(`SELECT ${nameColumn} AS name FROM ${table} WHERE email = ?`, [email]);
+  
+      if (results.length === 0) {
+        return res.status(400).json({ success: false, message: 'Email tidak ditemukan' });
+      }
+  
+      const user = results[0];
+  
+      const token = crypto.randomBytes(20).toString('hex');
+
+      const resetLink = `http://localhost:3000/reset-password/${role}?email=${email}&token=${token}`;
+  
+      const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASS,
+        },
+      });
+  
+      const mailOptions = {
+        from: process.env.EMAIL_USER,
+        to: email,
+        subject: 'Reset Password',
+        text: `Halo ${user.name}, klik link berikut untuk mereset password Anda: ${resetLink}`,
+      };
+  
+      await transporter.sendMail(mailOptions);
+  
+      return res.json({
+        success: true,
+        message: `Link reset password telah dikirim ke email ${email} (${user.name})`,
+        name: user.name,
+        email: email,
+      });
+    } catch (err) {
+      console.error('Error:', err);
+      return res.status(500).json({ success: false, message: 'Terjadi kesalahan pada server' });
+    }
+  });
+
+  // endpoint untuk menampilkan buat kata sandi baru
+  // berada di di file sandi.html
+  app.get('/reset-password/:role', async (req, res) => {
+    const { role } = req.params;
+    const { email } = req.query;
+    console.log(`Role: ${role}, Email: ${email}`);
+  
+    if (!email) {
+      return res.status(400).send('Email is required');
+    }
+  
+    const table = role === 'pegawai' ? 'pegawai' : 'siswa';
+    const nameColumn = role === 'pegawai' ? 'nama_pegawai' : 'nama_siswa';
+  
+    try {
+      const [results] = await db.execute(`SELECT ${nameColumn} AS name FROM ${table} WHERE email = ?`, [email]);
+  
+      if (results.length === 0) {
+        return res.status(400).send('Email not found');
+      }
+  
+      const user = results[0];
+  
+      const filePath = path.join(__dirname, 'frontend', 'html', 'sandi.html');
+  
+      fs.readFile(filePath, 'utf8', (err, data) => {
+        if (err) {
+          return res.status(500).send('Error loading page');
+        }
+  
+        let htmlContent = data;
+        htmlContent = htmlContent
+          .replace('<%= role %>', role)
+          .replace('<%= email %>', email)
+          .replace('<%= name %>', user.name);
+  
+        res.send(htmlContent); 
+      });
+    } catch (err) {
+      console.error('Error:', err);
+      return res.status(500).send('Error occurred while processing the request');
+    }
+  });  
+  app.put('/reset-password/:role', async (req, res) => {
+    const { role } = req.params;
+    const { email, newPassword, confirmPassword } = req.body;
+  
+    if (!email || !newPassword || !confirmPassword) {
+      return res.status(400).json({ success: false, message: 'Email, New Password, and Confirm Password are required' });
+    }
+  
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({ success: false, message: 'Password and confirm password must match' });
+    }
+  
+    try {
+      // tergantung dari role masing-masing yang membedakan itu yaitu email
+      const table = role === 'pegawai' ? 'pegawai' : 'siswa';
+  
+      // untuk mengupdate password yg membedakan itu email nya, makanya bisa di update
+      const updateResult = await db.execute(
+        `UPDATE ${table} SET password = ?, last_password_update = NOW() WHERE email = ?`,
+        [newPassword, email]
+      );
+  
+      console.log('updateResult:', updateResult);
+  
+      if (updateResult.changedRows > 0) {
+        return res.json({ success: true, message: 'Password berhasil diubah' });
+      } 
+      
+    } catch (error) {
+      console.error('Error during password update:', error);
+      return res.status(500).json({ success: false, message: 'An error occurred during the password update' });
+    }
+  });
+  
+  app.put('/reset-password-after-login', async (req, res) => {
+    console.log('Request body:', req.body);
+
+    // Menambahkan log untuk memeriksa data session
+    const loginSebagai = req.session.user ? req.session.user.login_sebagai : null;
+    const userId = req.session.user ? req.session.user.id : null;
+    console.log('loginSebagai:', loginSebagai, 'userId:', userId); // Menambahkan log untuk session
+
+    const { newPassword, confirmPassword } = req.body;
+
+    // Validasi password
+    if (!newPassword || !confirmPassword) {
+        console.log('Missing password or confirmPassword');
+        return res.status(400).json({ success: false, message: 'New Password and Confirm Password are required' });
+    }
+
+    if (newPassword !== confirmPassword) {
+        console.log('Passwords do not match');
+        return res.status(400).json({ success: false, message: 'Password and confirm password must match' });
+    }
+
+    if (!loginSebagai || !userId) {
+        console.log('User session is missing');
+        return res.status(400).json({ success: false, message: 'Role and User ID are required' });
+    }
+
+    try {
+        const table = loginSebagai === 'Pegawai' ? 'pegawai' : 'siswa';
+        const idColumn = loginSebagai === 'Pegawai' ? 'nip' : 'nisn';
+    
+        console.log('Checking user with ID:', userId);
+    
+        const [user] = await db.execute(
+            `SELECT password FROM ${table} WHERE ${idColumn} = ?`,
+            [userId]
+        );
+    
+        console.log('User fetched from database:', user);
+    
+        if (!user || user.length === 0) {
+            console.log('User not found');
+            return res.status(400).json({ success: false, message: 'Pengguna tidak ditemukan' });
+        }
+    
+        if (user[0].password === newPassword) {
+            console.log('New password is the same as the old one');
+            return res.status(400).json({ success: false, message: 'Password baru sama dengan yang lama' });
+        }
+    
+        const updateResult = await db.execute(
+            `UPDATE ${table} SET password = ?, last_password_update = NOW() WHERE ${idColumn} = ?`,
+            [newPassword, userId]
+        );
+    
+        console.log('Update Result:', updateResult);
+    
+        if (updateResult && updateResult[0] && updateResult[0].affectedRows > 0) {
+            console.log('Password successfully updated');
+            return res.status(200).json({ success: true, message: 'Password berhasil diubah' });
+        } else {
+            console.error('Update failed, affectedRows:', updateResult[0]?.affectedRows);
+            return res.status(500).json({ success: false, message: 'Gagal memperbarui password' });
+        }
+    
+    } catch (error) {
+        console.error('Error during password update:', error);
+        return res.status(500).json({ success: false, message: `Terjadi kesalahan: ${error.message}` });
+    }
+});
+
+app.get('/reset-password-after-login', async (req, res) => {
+    const loginSebagai = req.session.user ? req.session.user.login_sebagai : null;
+    const userId = req.session.user ? req.session.user.id : null;
+
+    console.log('Login Sebagai:', loginSebagai); 
+    console.log('User ID:', userId);
+
+    if (!loginSebagai || !userId) {
+        return res.status(400).send('Role and User ID are required');
+    }
+
+    try {
+        const table = loginSebagai === 'Pegawai' ? 'pegawai' : 'siswa';
+        const idColumn = loginSebagai === 'Pegawai' ? 'nip' : 'nisn';
+        const nameColumn = loginSebagai === 'Pegawai' ? 'nama_pegawai' : 'nama_siswa';
+
+        const [results] = await db.execute(`SELECT ${nameColumn} AS name FROM ${table} WHERE ${idColumn} = ?`, [userId]);
+
+        if (results.length === 0) {
+            return res.status(400).send('User not found');
+        }
+
+        const user = results[0];
+
+        const filePath = path.join(__dirname, 'frontend', 'html', 'sandi-stlh-login.html');
+        fs.readFile(filePath, 'utf8', (err, data) => {
+            if (err) {
+                console.error('Error reading HTML file:', err);
+                return res.status(500).send('Error loading page');
+            }
+
+            let htmlContent = data;
+            htmlContent = htmlContent
+                .replace('<%= role %>', loginSebagai)
+                .replace('<%= name %>', user.name);
+
+            res.send(htmlContent);
+        });
+    } catch (err) {
+        console.error('Error occurred while processing the request:', err);
+        return res.status(500).send('Error occurred while processing the request');
+    }
+});
 app.listen(PORT, () => {
     console.log(`Server berjalan di http://localhost:${PORT}`);
 });

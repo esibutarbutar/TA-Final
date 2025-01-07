@@ -39,7 +39,7 @@ document.addEventListener("DOMContentLoaded", function() {
           }
         })
         .catch(error => {
-          console.error('Error:', error); s
+          console.error('Error:', error); 
           alert('Terjadi kesalahan: ' + error.message);
         });        
     });

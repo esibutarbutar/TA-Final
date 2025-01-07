@@ -120,16 +120,16 @@ async function fetchGrades(kelasId, mapelId) {
         alert("Gagal memuat data nilai.");
     }
 }
+
 function TampilkanNilai(gradesData) {
     const tbody = document.getElementById("nilai-tbody");
     tbody.innerHTML = ''; // Bersihkan tabel sebelumnya
 
-    let showApproveAllButton = true; // Variabel untuk menampilkan tombol Setujui Semua
+    let showsetujuiSemuaButton = true; // Variabel untuk menampilkan tombol Setujui Semua
 
     if (Array.isArray(gradesData) && gradesData.length > 0) {
         gradesData.forEach(grade => {
-            const nilaiAkhir = (grade.uts * 0.3) + (grade.uas * 0.4) + (grade.tugas * 0.3);
-
+            nilaiAkhir = parseFloat(((grade.uts * 0.4) + (grade.uas * 0.4) + (grade.tugas * 0.2)).toFixed(2))
             const row = document.createElement("tr");
 
             // NISN
@@ -144,22 +144,20 @@ function TampilkanNilai(gradesData) {
 
             // Nilai UTS, UAS, dan Tugas
             const utsCell = document.createElement("td");
-            utsCell.textContent = grade.uts || '-';
+            utsCell.textContent = grade.uts !== null ? grade.uts : '-';
             row.appendChild(utsCell);
 
             const uasCell = document.createElement("td");
-            uasCell.textContent = grade.uas || '-';
+            uasCell.textContent = grade.uas !== null ? grade.uas : '-';
             row.appendChild(uasCell);
 
             const tugasCell = document.createElement("td");
-            tugasCell.textContent = grade.tugas || '-';
+            tugasCell.textContent = grade.tugas !== null ? grade.tugas : '-';
             row.appendChild(tugasCell);
 
-            // Nilai Akhir
             const nilaiAkhirCell = document.createElement("td");
-            nilaiAkhirCell.textContent = nilaiAkhir.toFixed(2);
+            nilaiAkhirCell.textContent = nilaiAkhir;
             row.appendChild(nilaiAkhirCell);
-
             // Status
             const statusCell = document.createElement("td");
             let checkIcon, timesIcon;
@@ -168,11 +166,11 @@ function TampilkanNilai(gradesData) {
             if (grade.gradeStatus === "setuju") {
                 statusCell.innerHTML = `<i class="fas fa-check-circle" style="color: green; cursor: pointer;" title="Lulus"></i>`;
                 checkIcon = statusCell.querySelector('.fa-check-circle');
-                showApproveAllButton = false; // Menyembunyikan tombol Setujui Semua jika ada yang sudah disetujui
+                showsetujuiSemuaButton = false; // Menyembunyikan tombol Setujui Semua jika ada yang sudah disetujui
             } else if (grade.gradeStatus === "tolak") {
                 statusCell.innerHTML = `<i class="fas fa-times-circle" style="color: red; cursor: pointer;" title="Tidak Lulus"></i>`;
                 timesIcon = statusCell.querySelector('.fa-times-circle');
-                showApproveAllButton = false; // Menyembunyikan tombol Setujui Semua jika ada yang ditolak
+                showsetujuiSemuaButton = false; // Menyembunyikan tombol Setujui Semua jika ada yang ditolak
             } else {
                 statusCell.innerHTML = ` 
                     <i class="fas fa-check-circle" style="color: green; cursor: pointer;" title="Lulus"></i>
@@ -259,25 +257,26 @@ function TampilkanNilai(gradesData) {
             tbody.appendChild(row);
         });
 
-        // Jika status semua nilai masih kosong, tampilkan tombol Setujui Semua
-        if (showApproveAllButton) {
-            const approveAllButton = document.createElement("button");
-            approveAllButton.textContent = "Setujui Semua";
-            approveAllButton.style.marginTop = "20px";
-            approveAllButton.style.cursor = "pointer";
-            approveAllButton.style.position = "absolute";
-            approveAllButton.style.right = "20px";
-            approveAllButton.style.backgroundColor = "#004D40";
-            approveAllButton.style.color = "white";
-            approveAllButton.style.padding = "8px 10px";
-            approveAllButton.style.border = "none";
-            approveAllButton.style.borderRadius = "5px";
-            approveAllButton.style.fontSize = "12px";
-            approveAllButton.style.transition = "background-color 0.3s";
-        
-            approveAllButton.addEventListener('click', () => {
+
+        if (showsetujuiSemuaButton) {
+            const setujuiSemuaButton = document.createElement("button");
+            setujuiSemuaButton.textContent = "Setujui Semua";
+            setujuiSemuaButton.style.marginTop = "20px";
+            setujuiSemuaButton.style.cursor = "pointer";
+            setujuiSemuaButton.style.position = "absolute";
+            setujuiSemuaButton.style.right = "20px";
+            setujuiSemuaButton.style.backgroundColor = "#004D40";
+            setujuiSemuaButton.style.color = "white";
+            setujuiSemuaButton.style.padding = "8px 10px";
+            setujuiSemuaButton.style.border = "none";
+            setujuiSemuaButton.style.borderRadius = "5px";
+            setujuiSemuaButton.style.fontSize = "12px";
+            setujuiSemuaButton.style.transition = "background-color 0.3s";
+
+            setujuiSemuaButton.addEventListener('click', () => {
                 let missingFields = new Set(); // Menggunakan Set untuk memastikan tidak ada duplikasi
-        
+                const mapelId = document.getElementById("matpel-filter").value;
+
                 gradesData.forEach(grade => {
                     if (!grade.uts) {
                         missingFields.add('UTS');
@@ -289,7 +288,7 @@ function TampilkanNilai(gradesData) {
                         missingFields.add('Tugas');
                     }
                 });
-        
+
                 // Cek apakah ada nilai yang belum diisi
                 if (missingFields.size > 0) {
                     Swal.fire({
@@ -298,62 +297,80 @@ function TampilkanNilai(gradesData) {
                         text: 'Harap isi nilai ' + Array.from(missingFields).join(', ') + ' sebelum menyetujui.',
                     });
                 } else {
-                    let updateSuccessful = true;
-        
-                    gradesData.forEach(grade => {
+                    // Buat array untuk menampung semua promise dari setiap request fetch
+                    let updatePromises = [];
+
+                    gradesData.forEach((grade, index) => {
                         grade.gradeStatus = "setuju";
                         grade.catatan = "Lulus";
-        
-                        fetch('/api/update-grade-status', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({
-                                nisn: grade.nisn,
-                                catatan: grade.catatan,
-                                status: grade.gradeStatus,
-                                mapel_id: grade.mapel_id
+
+                        // Tambahkan setiap fetch request ke dalam array promises
+                        updatePromises.push(
+                            fetch('/api/update-grade-status', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                    nisn: grade.nisn,
+                                    catatan: grade.catatan,
+                                    status: grade.gradeStatus,
+                                    mapel_id: mapelId
+                                })
                             })
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.message !== 'Status berhasil diperbarui.') {
-                                updateSuccessful = false;
-                            }
+                                .then(response => response.json())
+                                .then(data => {
+                                    console.log("Response data:", data);
+                                    if (data.message !== 'Status berhasil diperbarui.') {
+                                        throw new Error('Gagal memperbarui status nilai');
+                                    }
+
+                                    // Update UI jika status berhasil diubah
+                                    const row = tbody.children[index];
+                                    const statusCell = row.querySelector('td:nth-child(7)'); // Asumsi kolom status ada di index 7
+                                    const catatanCell = row.querySelector('td:nth-child(8)'); // Asumsi kolom catatan ada di index 8
+                                    statusCell.innerHTML = `<i class="fas fa-check-circle" style="color: green;"></i> Setuju`;
+                                    catatanCell.textContent = "Lulus";
+                                })
+                                .catch(err => {
+                                    console.error('Error:', err);
+                                    // Bisa menambahkan logika untuk menangani kesalahan, jika perlu
+                                })
+                        );
+                    });
+
+                    // Gunakan Promise.all untuk menunggu semua request selesai
+                    Promise.all(updatePromises)
+                        .then(() => {
+                            Swal.fire({
+                                title: 'Sukses!',
+                                text: 'Semua nilai berhasil disetujui!',
+                                icon: 'success',
+                                confirmButtonText: 'OK',
+                                confirmButtonColor: '#004D40',
+                            }).then(() => {
+                                // Menyembunyikan tombol Setujui Semua setelah berhasil
+                                setujuiSemuaButton.style.display = 'none';
+                            });
                         })
                         .catch(err => {
-                            console.error('Error:', err);
-                            updateSuccessful = false;
-                        });
-                    });
-        
-                    Swal.fire({
-                        title: updateSuccessful ? 'Sukses!' : 'Gagal!',
-                        text: updateSuccessful 
-                            ? 'Semua nilai berhasil disetujui!' 
-                            : 'Terjadi kesalahan dalam memperbarui status nilai. Silakan coba lagi.',
-                        icon: updateSuccessful ? 'success' : 'error',
-                        confirmButtonText: 'OK'
-                    }).then(() => {
-                        if (updateSuccessful) {
-                            approveAllButton.style.display = 'none';
-        
-                            // Nonaktifkan semua ikon di tabel
-                            document.querySelectorAll('.grade-icon').forEach(icon => {
-                                icon.classList.add('disabled'); // Tambahkan class "disabled"
-                                icon.style.pointerEvents = 'none'; // Nonaktifkan klik
-                                icon.style.opacity = '0.5'; // Tambahkan efek visual
+                            Swal.fire({
+                                title: 'Gagal!',
+                                text: 'Terjadi kesalahan dalam memperbarui status nilai. Silakan coba lagi.',
+                                icon: 'error',
+                                confirmButtonText: 'OK',
+                                confirmButtonColor: '#004D40',
                             });
-                        }
-                    });
+                        });
                 }
             });
-        
+
+
             // Menambahkan tombol ke dalam tabel
-            document.getElementById("nilaiTable").appendChild(approveAllButton);
+            document.getElementById("nilaiTable").appendChild(setujuiSemuaButton);
         }
-            } else {
+
+    } else {
         const noDataRow = document.createElement("tr");
         const noDataCell = document.createElement("td");
         noDataCell.colSpan = 8;

@@ -69,10 +69,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (targetSection) {
                 targetSection.classList.remove('hidden');
 
-                // Jika target adalah data siswa, panggil fungsi fetchSiswaData()
-                if (target === 'data-nilai-siswa') {
-                    fetchSiswaData();
-                }
+                // // Jika target adalah data siswa, panggil fungsi fetchSiswaData()
+                // if (target === 'data-nilai-siswa') {
+                //     fetchSiswaData();
+                // }
             }
         });
     });

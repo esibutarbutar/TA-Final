@@ -136,7 +136,6 @@ function searchKelas(searchQuery, filterTahunAjaran = '') {
             tbody.innerHTML = '<tr><td colspan="6">Terjadi kesalahan saat memuat data</td></tr>';
         });
 }
-// Event listener untuk input pencarian
 document.getElementById('search-subject-input').addEventListener('input', function () {
     const searchQuery = this.value.trim(); // Ambil nilai dari input pencarian
     const filterTahunAjaran = document.getElementById('kelas-filter').value; // Ambil filter tahun ajaran
@@ -144,8 +143,8 @@ document.getElementById('search-subject-input').addEventListener('input', functi
 });
 
 document.getElementById('add-kelas-btn').addEventListener('click', function () {
-    // Mengambil data pegawai dan tahun ajaran dari API atau server
-    Promise.all([
+    console.log(kelasData.pegawai_id);   
+     Promise.all([
         fetch('/api/pegawai'), // Sesuaikan URL dengan API pegawai Anda
         fetch('/api/tahun-ajaran') // Sesuaikan URL dengan API tahun ajaran Anda
     ])
@@ -157,8 +156,9 @@ document.getElementById('add-kelas-btn').addEventListener('click', function () {
         })
         .then(([pegawaiData, tahunAjaranData]) => {
             const pegawaiOptions = pegawaiData.map(pegawai => {
-                return `<option value="${pegawai.nip}">${pegawai.nama_pegawai}</option>`;
+                return `<option value="${pegawai.nip}" ${pegawai.nip === kelasData.pegawai_id ? 'selected' : ''}>${pegawai.nama_pegawai}</option>`;
             }).join('');
+            
 
             const tahunAjaranOptions = tahunAjaranData.map(tahun => {
                 return `<option value="${tahun.id}">${tahun.nama_tahun_ajaran} ${tahun.semester}</option>`;
