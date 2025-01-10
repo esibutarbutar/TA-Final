@@ -156,7 +156,8 @@ input[type="checkbox"]:disabled:checked {
   border: none;
   padding: 10px 20px;
   cursor: pointer;
-  display: none; /* Tombol Batal disembunyikan secara default */
+  display: none;
+  font-size: 11px;
 }
 
 .btn-cancel:hover {

@@ -380,15 +380,19 @@ saveButton.addEventListener("click", async () => {
 });
 
 cancelButton.addEventListener("click", () => {
-  // Kembalikan ke keadaan semula
   const checkboxes = document.querySelectorAll('input[type="checkbox"]');
   checkboxes.forEach(checkbox => {
-    checkbox.disabled = true; // Nonaktifkan checkbox
+    if (checkbox.classList.contains('hadir-checkbox')) {
+      checkbox.checked = true;
+    } else {
+      checkbox.checked = false;
+    }
+
+    checkbox.disabled = true; 
   });
+
   saveButton.textContent = "Edit";
   saveButton.setAttribute("data-mode", "edit");
-
-  // Sembunyikan tombol batal
   cancelButton.style.display = "none";
 });
 async function fetchAbsensiData(kelasId, date) {

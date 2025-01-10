@@ -362,7 +362,6 @@ async function fetchClassData(classId) {
     console.log('Data kelas:', classData);
 
     const classNameElement = document.getElementById('class-name');
-    const classTeacherNameElement = document.getElementById('class-teacher-name');
     const academicYearElement = document.getElementById('academic-year');
     const semesterElement = document.getElementById('semester');
     const studentNameElement = document.getElementById('student-name');
@@ -372,12 +371,10 @@ async function fetchClassData(classId) {
       element.classList.add('class-info');
     };
 
-    if (classNameElement && classTeacherNameElement && academicYearElement && semesterElement && studentNameElement) {
+    if (classNameElement  && academicYearElement && semesterElement && studentNameElement) {
       classNameElement.textContent = `Kelas: ${classData.nama_kelas || 'Tidak Tersedia'}`;
-      classTeacherNameElement.textContent = `Wali Kelas: ${classData.nama_pegawai || 'Tidak Tersedia'}`;
 
       applyClassInfoStyle(classNameElement);
-      applyClassInfoStyle(classTeacherNameElement);
 
       const sessionResponse = await fetch('/api/session-siswa');
       if (sessionResponse.ok) {
@@ -399,8 +396,7 @@ async function fetchClassData(classId) {
           const tahunAjaranData = await tahunAjaranResponse.json();
           console.log('Data Tahun Ajaran:', tahunAjaranData);
 
-          academicYearElement.textContent = `Tahun Ajaran: ${tahunAjaranData.nama_tahun_ajaran || 'Tidak Tersedia'}`;
-          semesterElement.textContent = `Semester: ${tahunAjaranData.semester || 'Tidak Tersedia'}`;
+          academicYearElement.textContent = `Tahun Ajaran: ${tahunAjaranData.nama_tahun_ajaran || 'Tidak Tersedia'}- ${tahunAjaranData.semester || 'Tidak Tersedia'}`;
 
           applyClassInfoStyle(academicYearElement);
           applyClassInfoStyle(semesterElement);

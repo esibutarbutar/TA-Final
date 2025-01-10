@@ -2295,57 +2295,72 @@ app.get('/api/grades/:tahunAjaran', async (req, res) => {
         return res.status(401).json({ error: 'Anda belum login.' });
     }
 
-    const query = `
-        SELECT g.nisn, s.nama_siswa, g.gradesType, g.grade, g.gradeStatus, m.nama_mata_pelajaran
-        FROM grades g
-        JOIN siswa s ON g.nisn = s.nisn
-        JOIN mata_pelajaran m ON g.id_matpel = m.id
-        WHERE g.id_tahun_ajaran = ? AND g.nisn = ? AND g.gradesType IN ('uts', 'uas', 'tugas');
-    `;
-
     try {
-        const [results] = await db.execute(query, [tahunAjaran, nisn]);
+        // Ambil kelas siswa berdasarkan NISN
+        const [kelasResults] = await db.execute(
+            `SELECT kelas.id AS id_kelas 
+             FROM siswa 
+             JOIN kelas ON siswa.id_kelas = kelas.id 
+             WHERE siswa.nisn = ?`,
+            [nisn]
+        );
 
-        // Transformasi hasil
+        if (kelasResults.length === 0) {
+            return res.status(404).json({ error: 'Data kelas tidak ditemukan untuk siswa ini.' });
+        }
+
+        const kelasId = kelasResults[0].id_kelas;
+
+        // Query untuk mengambil mata pelajaran sesuai kelas dan tahun ajaran
+        const query = `
+            SELECT 
+                m.nama_mata_pelajaran AS matpel, 
+                g.gradesType, 
+                g.grade, 
+                g.gradeStatus
+            FROM mata_pelajaran m
+            LEFT JOIN grades g 
+                ON m.id = g.id_matpel 
+                AND g.id_tahun_ajaran = ? 
+                AND g.nisn = ?
+            WHERE m.id_kelas = ?;
+        `;
+
+        const [results] = await db.execute(query, [tahunAjaran, nisn, kelasId]);
+
+        // Transformasi hasil untuk menampilkan data nilai sesuai format yang diinginkan
         const nilaiAkhir = results.reduce((acc, row) => {
-            const { gradesType, grade, nama_mata_pelajaran, gradeStatus } = row;
+            const { matpel, gradesType, grade, gradeStatus } = row;
 
-            // Inisialisasi data jika belum ada untuk mata pelajaran tersebut
-            if (!acc[nama_mata_pelajaran]) {
-                acc[nama_mata_pelajaran] = {
-                    matpel: nama_mata_pelajaran,
-                    uts: null,
-                    uas: null,
-                    tugas: null,
-                    nilai_akhir: null, // Kosongkan jika belum disetujui
+            if (!acc[matpel]) {
+                acc[matpel] = {
+                    matpel,
+                    uts: '-',
+                    uas: '-',
+                    tugas: '-',
+                    nilai_akhir: '-',
                 };
             }
 
-            // Mengelompokkan nilai berdasarkan gradeType
-            if (gradesType.toLowerCase() === 'uts') {
-                acc[nama_mata_pelajaran].uts = grade ? Number(grade) : null;
-            } else if (gradesType.toLowerCase() === 'uas') {
-                acc[nama_mata_pelajaran].uas = grade ? Number(grade) : null;
-            } else if (gradesType.toLowerCase() === 'tugas') {
-                acc[nama_mata_pelajaran].tugas = grade ? Number(grade) : null;
+            if (gradesType?.toLowerCase() === 'uts') {
+                acc[matpel].uts = grade !== null ? Number(grade) : '-';
+            } else if (gradesType?.toLowerCase() === 'uas') {
+                acc[matpel].uas = grade !== null ? Number(grade) : '-';
+            } else if (gradesType?.toLowerCase() === 'tugas') {
+                acc[matpel].tugas = grade !== null ? Number(grade) : '-';
             }
 
-            // Hanya hitung nilai akhir jika gradeStatus "setuju"
             if (gradeStatus?.toLowerCase() === 'setuju') {
-                const { uts, uas, tugas } = acc[nama_mata_pelajaran];
-                // Hitung nilai akhir jika semua nilai ada dan status "setuju"
-                if (uts !== null && uas !== null && tugas !== null) {
-                    acc[nama_mata_pelajaran].nilai_akhir = ((uts * 0.4) + (uas * 0.4) + (tugas * 0.2)).toFixed(1);
+                const { uts, uas, tugas } = acc[matpel];
+                if (uts !== '-' && uas !== '-' && tugas !== '-') {
+                    acc[matpel].nilai_akhir = ((uts * 0.4) + (uas * 0.4) + (tugas * 0.2)).toFixed(1);
                 }
             }
 
             return acc;
         }, {});
 
-        // Transformasi objek menjadi array untuk respons JSON
-        const finalResults = Object.values(nilaiAkhir);
-
-        res.json(finalResults);
+        res.json(Object.values(nilaiAkhir));
     } catch (err) {
         console.error("Error executing query:", err);
         res.status(500).json({ error: 'Gagal memuat data nilai' });

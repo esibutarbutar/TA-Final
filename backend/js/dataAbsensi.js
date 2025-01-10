@@ -69,9 +69,6 @@ async function displayKelasHeader(kelasData) {
   kelasInfo.className = 'kelas';
   kelasInfo.textContent = `Kelas: ${kelasData.nama_kelas || 'Tidak Tersedia'}`;
 
-  const waliKelasInfo = document.createElement('p');
-  waliKelasInfo.className = 'wali';
-  waliKelasInfo.textContent = `Wali Kelas: ${kelasData.nama_pegawai || 'Tidak Tersedia'}`;
 
   const dateLabel = document.createElement('label');
   dateLabel.className = 'kalender';
@@ -99,37 +96,28 @@ async function displayKelasHeader(kelasData) {
   const academicYearInfo = document.createElement('p');
   academicYearInfo.className = 'tahun';
 
-  const semesterInfo = document.createElement('p');
-  semesterInfo.className = 'semester';
-
   const tahunAjaranId = kelasData.id_tahun_ajaran;
   if (!tahunAjaranId) {
     console.error('ID Tahun Ajaran tidak tersedia di kelasData:', kelasData);
     academicYearInfo.textContent = 'Tahun Ajaran Tidak Tersedia';
-    semesterInfo.textContent = 'Semester Tidak Tersedia';
   } else {
     try {
       const tahunAjaranResponse = await fetch(`/api/tahun-ajaran/${tahunAjaranId}`);
       if (tahunAjaranResponse.ok) {
         const tahunAjaranData = await tahunAjaranResponse.json();
-        academicYearInfo.textContent = `Tahun Ajaran: ${tahunAjaranData.nama_tahun_ajaran}`;
-        semesterInfo.textContent = `Semester: ${tahunAjaranData.semester}`;
+        academicYearInfo.textContent = `Tahun Ajaran: ${tahunAjaranData.nama_tahun_ajaran} - ${tahunAjaranData.semester}`;
       } else {
         console.error('Gagal mendapatkan Tahun Ajaran:', tahunAjaranResponse.statusText);
         academicYearInfo.textContent = 'Tahun Ajaran Tidak Ditemukan';
-        semesterInfo.textContent = 'Semester Tidak Ditemukan';
       }
     } catch (error) {
       console.error('Error fetching Tahun Ajaran:', error);
       academicYearInfo.textContent = 'Gagal memuat Tahun Ajaran';
-      semesterInfo.textContent = 'Gagal memuat Semester';
     }
   }
 
   // Tambahkan elemen ke dalam header
   kelasHeader.appendChild(kelasInfo);
-  kelasHeader.appendChild(waliKelasInfo);
-  kelasHeader.appendChild(semesterInfo);
   kelasHeader.appendChild(academicYearInfo);
   kelasHeader.appendChild(dateLabel);
 }
@@ -230,47 +218,13 @@ function displayAbsensi(siswaList) {
 
   // Logika tambahan untuk "Select All"
   // Fungsi untuk memeriksa apakah semua checkbox terpilih
-  function checkAllSelected(status) {
-    const checkboxes = document.querySelectorAll(`.${status}-checkbox`);
-    const selectAllCheckbox = document.getElementById(`select-all-${status}`);
-    if (!selectAllCheckbox) return;
-
-    // Periksa apakah semua checkbox sudah tercentang
-    const allSelected = Array.from(checkboxes).every(checkbox => checkbox.checked);
-    selectAllCheckbox.checked = allSelected;
-
-    // Nonaktifkan "Select All" jika tidak ada checkbox yang terpilih
-    selectAllCheckbox.disabled = !checkboxes.length;
-  }
-
-  // Menambahkan event listener pada setiap checkbox status
-  ['hadir', 'izin', 'sakit', 'alpa'].forEach(status => {
-    const checkboxes = document.querySelectorAll(`.${status}-checkbox`);
-    
-    checkboxes.forEach(checkbox => {
-      checkbox.addEventListener('change', () => checkAllSelected(status));
-    });
-
-    // Menambahkan event listener pada checkbox "Select All"
-    const selectAllCheckbox = document.getElementById(`select-all-${status}`);
-    if (selectAllCheckbox) {
-      selectAllCheckbox.addEventListener('change', (e) => {
-        const isChecked = e.target.checked;
-        checkboxes.forEach(checkbox => {
-          checkbox.checked = isChecked;
-        });
-      });
-    }
-  });
+  
 }
 
-// const uniqueAbsensiData = uniqueAbsensiData.filter((value, index, self) =>
-//     index === self.findIndex((t) => (
-//         t.nisn === value.nisn && t.status === value.status
-//     ))
-// );
 
 const saveButton = document.getElementById("save-button");
+
+const cancelButton = document.getElementById("cancel-button");
 
 saveButton.addEventListener("click", async () => {
   const mode = saveButton.getAttribute("data-mode");
@@ -285,22 +239,19 @@ saveButton.addEventListener("click", async () => {
     return;
   }
 
-  // Ambil tanggal yang dipilih
   const selectedDate = document.getElementById("attendance-date").value;
-
-  // Cek apakah tanggal yang dipilih lebih besar dari hari ini
   const today = new Date();
   const sevenDaysAgo = new Date(today);
   sevenDaysAgo.setDate(today.getDate() - 7);
-
   const selectedDateObj = new Date(selectedDate);
 
-  // Cek apakah tanggal yang dipilih lebih dari 7 hari yang lalu
   if (selectedDateObj > today) {
     Swal.fire({
       icon: 'error',
       title: 'Tanggal tidak valid!',
       text: 'Anda tidak dapat memilih tanggal di masa depan untuk absensi.',
+      confirmButtonColor: '#004D40',
+
     });
     return;
   }
@@ -310,36 +261,42 @@ saveButton.addEventListener("click", async () => {
       icon: 'error',
       title: 'Tanggal tidak valid!',
       text: 'Anda hanya bisa mengedit absensi dalam rentang 7 hari terakhir.',
+      confirmButtonColor: '#004D40',
+
     });
     return;
   }
 
-  const date = selectedDate; // Gunakan tanggal yang dipilih
+  const date = selectedDate;
 
   try {
     if (mode === 'edit') {
-      // Aktifkan checkbox untuk edit
       const checkboxes = document.querySelectorAll('input[type="checkbox"]');
       checkboxes.forEach(checkbox => {
         checkbox.disabled = false;
       });
       saveButton.textContent = "Simpan";
       saveButton.setAttribute("data-mode", "save");
+      cancelButton.style.display = "inline-block"; // Tampilkan tombol batal
     } else if (mode === 'save') {
-      // Kumpulkan data absensi
       const absensiData = [];
       const checkboxes = document.querySelectorAll('input[type="checkbox"]:checked');
-      checkboxes.forEach(checkbox => {
-        if (checkbox.name && checkbox.name.includes('[') && checkbox.name.includes(']')) {
-          const nisn = checkbox.name.split('[')[1].split(']')[0];
-          const status = checkbox.value;
-          absensiData.push({
-            nisn: nisn,
-            status: status,
-            id_kelas: id_kelas,
-            date: date
-          });
-        }
+      const rows = document.querySelectorAll('#siswa-tbody-absensi tr');
+      rows.forEach(row => {
+        const nisn = row.querySelector('td:nth-child(3)').textContent.trim();
+        const hadir = row.querySelector('.hadir-checkbox').checked;
+        const izin = row.querySelector('.izin-checkbox').checked;
+        const sakit = row.querySelector('.sakit-checkbox').checked;
+        const alpa = row.querySelector('.alpa-checkbox').checked;
+
+        const status = hadir ? 'Hadir' : izin ? 'Izin' : sakit ? 'Sakit' : alpa ? 'Alpa' : null;
+
+        absensiData.push({
+          nisn: nisn,
+          status: status,
+          id_kelas: id_kelas,
+          date: date
+        });
       });
 
       if (absensiData.length === 0) {
@@ -347,14 +304,12 @@ saveButton.addEventListener("click", async () => {
           icon: 'warning',
           title: 'Tidak ada data absensi yang dipilih!',
           text: 'Silakan pilih data absensi terlebih dahulu.',
+          confirmButtonColor: '#004D40',
+
         });
         return;
       }
 
-      // Hilangkan data duplikat
-      const uniqueAbsensiData = removeDuplicateAbsensi(absensiData);
-
-      // Simpan atau update absensi
       let attendanceResponse = await fetch("http://localhost:3000/api/save-attendance", {
         method: "POST",
         headers: {
@@ -379,7 +334,6 @@ saveButton.addEventListener("click", async () => {
         throw new Error("ID Absensi tidak ditemukan dalam response.");
       }
 
-      // Simpan detail absensi
       const detailsResponse = await fetch("http://localhost:3000/api/save-attendance-details", {
         method: "POST",
         headers: {
@@ -388,7 +342,7 @@ saveButton.addEventListener("click", async () => {
         body: JSON.stringify({
           id_kelas: id_kelas,
           date: date,
-          absensiData: uniqueAbsensiData,
+          absensiData: absensiData,
         }),
       });
 
@@ -405,13 +359,13 @@ saveButton.addEventListener("click", async () => {
         confirmButtonColor: '#004D40',
       });
 
-      // Refresh data absensi
       fetchAbsensiData(id_kelas, date);
 
-      // Kembali ke mode Edit
       saveButton.textContent = "Edit";
       saveButton.setAttribute("data-mode", "edit");
-      
+
+      // Sembunyikan tombol batal setelah data disimpan
+      cancelButton.style.display = "none";  
     }
   } catch (error) {
     console.error("Error:", error);
@@ -419,60 +373,30 @@ saveButton.addEventListener("click", async () => {
       icon: 'error',
       title: 'Gagal menyimpan data absensi!',
       text: 'Terjadi kesalahan dalam menyimpan data absensi.',
+      confirmButtonColor: '#004D40',
+
     });
   }
 });
-async function updateStatusAbsensi(absensiId, absensiData) {
-  try {
-    if (!absensiId || !Array.isArray(absensiData) || absensiData.length === 0) {
-      throw new Error('Invalid absensiId or absensiData');
-    }
 
-    // menghapus data duplikat
-    const uniqueAbsensiData = removeDuplicateAbsensi(absensiData);
-
-    // data absensi untuk update
-    const values = uniqueAbsensiData.map(item => [item.status, absensiId, item.nisn]);
-
-    // memperbarui status absensi di database
-    const [result] = await db.query(
-      `
-          UPDATE attendanceDetails
-          SET status = ?
-          WHERE id_attendance = ? AND nisn = ?
-          `,
-      values
-    );
-
-    // mengecek apakah ada baris yang terpengaruh
-    if (result.affectedRows === 0) {
-      throw new Error('No matching records found to update');
-    }
-
-    return { success: true, message: 'Attendance details updated successfully', result };
-  } catch (error) {
-    console.error('Error updating attendance details:', error);
-    return { success: false, message: error.message, error };
-  }
-}
-
-// fungsi untuk menghapus duplikasi data berdasarkan nisn
-const removeDuplicateAbsensi = (data) => {
-  const uniqueData = new Map();
-
-  data.forEach(item => {
-    if (!uniqueData.has(item.nisn)) {
-      uniqueData.set(item.nisn, item);
+cancelButton.addEventListener("click", () => {
+  const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+  
+  checkboxes.forEach(checkbox => {
+    if (checkbox.classList.contains('hadir-checkbox')) {
+      checkbox.checked = true;
     } else {
-      uniqueData.set(item.nisn, item);
+      checkbox.checked = false;
     }
+
+    checkbox.disabled = true; // Nonaktifkan checkbox
   });
 
-  // mengembalikan data yang sudah unik
-  return Array.from(uniqueData.values());
-};
+  saveButton.textContent = "Edit";
+  saveButton.setAttribute("data-mode", "edit");
 
-
+  cancelButton.style.display = "none";
+});
 async function fetchAbsensiData(kelasId, date) {
   console.log(`Fetching attendance data for kelasId=${kelasId}, date=${date}`);
 
@@ -488,13 +412,24 @@ async function fetchAbsensiData(kelasId, date) {
     const tbody = document.getElementById('siswa-tbody-absensi');
     tbody.innerHTML = ''; // Clear previous data
 
+    if (absensiData.length === 0 || !absensiData[0].status) {
+      // Jika data absensi kosong atau belum ada status (null)
+      document.getElementById("save-button").textContent = "Simpan";
+      document.getElementById("save-button").setAttribute("data-mode", "save");
+    } else {
+      // Jika data absensi sudah ada dan berisi status
+      document.getElementById("save-button").textContent = "Edit";
+      document.getElementById("save-button").setAttribute("data-mode", "edit");
+    }
+
     absensiData.forEach((item, index) => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
+              <td>${index + 1}</td>
               <td>${item.nama_siswa}</td>
               <td>${item.nisn}</td>
               <td>
-                  <input type="checkbox" name="absensi[${item.nisn}][Hadir]" class="hadir-checkbox" value="Hadir" ${item.status === 'Hadir' ? 'checked' : ''} ${item.status ? 'disabled' : ''}>
+                  <input type="checkbox" name="absensi[${item.nisn}][Hadir]" class="hadir-checkbox" value="Hadir" ${item.status === 'Hadir' || !item.status ? 'checked' : ''} ${item.status ? 'disabled' : ''}>
               </td>
               <td>
                   <input type="checkbox" name="absensi[${item.nisn}][Izin]" class="izin-checkbox" value="Izin" ${item.status === 'Izin' ? 'checked' : ''} ${item.status ? 'disabled' : ''}>
@@ -507,85 +442,74 @@ async function fetchAbsensiData(kelasId, date) {
               </td>
           `;
       tbody.appendChild(tr);
+
+      // Get checkbox elements
+      const hadirCheckbox = tr.querySelector('.hadir-checkbox');
+      const izinCheckbox = tr.querySelector('.izin-checkbox');
+      const sakitCheckbox = tr.querySelector('.sakit-checkbox');
+      const alpaCheckbox = tr.querySelector('.alpa-checkbox');
+
+      // Add event listeners to handle checkbox interaction
+      hadirCheckbox.addEventListener('change', () => {
+        if (hadirCheckbox.checked) {
+          izinCheckbox.checked = false;
+          sakitCheckbox.checked = false;
+          alpaCheckbox.checked = false;
+        }
+      });
+
+      izinCheckbox.addEventListener('change', () => {
+        if (izinCheckbox.checked) {
+          hadirCheckbox.checked = false;
+          sakitCheckbox.checked = false;
+          alpaCheckbox.checked = false;
+        }
+      });
+
+      sakitCheckbox.addEventListener('change', () => {
+        if (sakitCheckbox.checked) {
+          hadirCheckbox.checked = false;
+          izinCheckbox.checked = false;
+          alpaCheckbox.checked = false;
+        }
+      });
+
+      alpaCheckbox.addEventListener('change', () => {
+        if (alpaCheckbox.checked) {
+          hadirCheckbox.checked = false;
+          izinCheckbox.checked = false;
+          sakitCheckbox.checked = false;
+        }
+      });
     });
-
-
+    
   } catch (error) {
     console.error("Error saat memuat data absensi:", error);
     alert(`Gagal memuat data absensi: ${error.message}`);
   }
 }
 
-function initializeSelectAllLogic() {
-  ['hadir', 'izin', 'sakit', 'alpa'].forEach(status => {
-    const selectAllCheckbox = document.getElementById(`select-all-${status}`);
+
+// document.getElementById("save-button").addEventListener("click", function() {
+//   const mode = this.getAttribute("data-mode");
+
+//   if (mode === "save") {
+//   } else if (mode === "edit") {
     
-    // Event listener untuk checkbox "Select All"
-    if (selectAllCheckbox) {
-      selectAllCheckbox.addEventListener('change', (e) => {
-        const checkboxes = document.querySelectorAll(`.${status}-checkbox`);
-        checkboxes.forEach(checkbox => checkbox.checked = e.target.checked);
-        updateSelectAllStatus(status); // Update status "Select All"
-      });
-    }
+//     document.getElementById("cancel-button").style.display = "inline-block";  
+//     this.textContent = "Simpan Perubahan";
+//     this.setAttribute("data-mode", "save");
+//   }
+// });
 
-    // Event listener untuk checkbox individu
-    const checkboxes = document.querySelectorAll(`.${status}-checkbox`);
-    checkboxes.forEach(checkbox => {
-      checkbox.addEventListener('change', () => {
-        updateSelectAllStatus(status); // Update status "Select All"
-      });
-    });
-  });
-}
-document.getElementById("save-button").addEventListener("click", function() {
-  const mode = this.getAttribute("data-mode");
-
-  if (mode === "save") {
-  } else if (mode === "edit") {
-    
-    document.getElementById("cancel-button").style.display = "inline-block";  
-    this.textContent = "Simpan Perubahan";
-    this.setAttribute("data-mode", "save");
-  }
-});
-
-document.getElementById("cancel-button").addEventListener("click", function() {
-  const saveButton = document.getElementById("save-button");
-  saveButton.textContent = "Edit";
-  saveButton.setAttribute("data-mode", "edit");
+// document.getElementById("cancel-button").addEventListener("click", function() {
+//   const saveButton = document.getElementById("save-button");
+//   saveButton.textContent = "Edit";
+//   saveButton.setAttribute("data-mode", "edit");
   
-  this.style.display = "none";  
+//   this.style.display = "none";  
 
-});
-
-// // Fungsi untuk logika "Select All"
-// function initializeSelectAllLogic() {
-//   ['hadir', 'izin', 'sakit', 'alpa'].forEach(status => {
-//     const selectAllCheckbox = document.getElementById(`select-all-${status}`);
-    
-//     // Event listener untuk "Select All"
-//     if (selectAllCheckbox) {
-//       selectAllCheckbox.addEventListener('change', (e) => {
-//         const checkboxes = document.querySelectorAll(`.${status}-checkbox`);
-//         checkboxes.forEach(checkbox => checkbox.checked = e.target.checked);
-//       });
-//     }
-
-//     // Tambahkan event listener untuk checkbox individual
-//     const checkboxes = document.querySelectorAll(`.${status}-checkbox`);
-//     checkboxes.forEach(checkbox => {
-//       checkbox.addEventListener('change', () => {
-//         // Periksa apakah semua checkbox sudah tercentang
-//         const allChecked = [...checkboxes].every(checkbox => checkbox.checked);
-        
-//         // Jika semua checkbox tercentang, aktifkan "Select All", jika tidak non-aktifkan
-//         selectAllCheckbox.checked = allChecked;
-//         selectAllCheckbox.indeterminate = !allChecked && [...checkboxes].some(checkbox => checkbox.checked); // Indeterminate state
-//       });
-//     });
-//   });
-// }
+// });
 
 document.addEventListener('DOMContentLoaded', () => {
   // Ambil kelasId dan date dari atribut data-* pada elemen
@@ -597,19 +521,6 @@ document.addEventListener('DOMContentLoaded', () => {
   fetchAbsensiData(kelasId, date);
 });
 
-
-// // Menginisialisasi fungsionalitas "Select All" setelah render
-// function initializeSelectAllLogic() {
-//   ['hadir', 'izin', 'sakit', 'alpa'].forEach(status => {
-//     const selectAllCheckbox = document.getElementById(`select-all-${status}`);
-//     if (selectAllCheckbox) {
-//       selectAllCheckbox.addEventListener('change', (e) => {
-//         const checkboxes = document.querySelectorAll(`.${status}-checkbox`);
-//         checkboxes.forEach(checkbox => checkbox.checked = e.target.checked);
-//       });
-//     }
-//   });
-// }
 
 
 async function getIdKelas() {

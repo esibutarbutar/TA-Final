@@ -86,27 +86,27 @@ function displayGrades(gradesData) {
 
             // Matpel
             const matpelCell = document.createElement("td");
-            matpelCell.textContent = grade.matpel || "Tidak tersedia";
+            matpelCell.textContent = grade.matpel || "Tidak tersedia"; // Pastikan mata pelajaran tetap ada
             row.appendChild(matpelCell);
 
             // Nilai UTS, UAS, dan Tugas
             const utsCell = document.createElement("td");
-            utsCell.textContent = grade.uts || '-';
+            utsCell.textContent = grade.uts !== null ? grade.uts : '-'; // Menampilkan '-' jika null
             row.appendChild(utsCell);
 
             const uasCell = document.createElement("td");
-            uasCell.textContent = grade.uas || '-';
+            uasCell.textContent = grade.uas !== null ? grade.uas : '-'; // Menampilkan '-' jika null
             row.appendChild(uasCell);
 
             const tugasCell = document.createElement("td");
-            tugasCell.textContent = grade.tugas || '-';
+            tugasCell.textContent = grade.tugas !== null ? grade.tugas : '-'; // Menampilkan '-' jika null
             row.appendChild(tugasCell);
 
             // Nilai Akhir
             const nilaiAkhirCell = document.createElement("td");
-            nilaiAkhirCell.textContent = grade.nilai_akhir === 'Belum Disetujui'
-                ? 'Belum Disetujui'
-                : grade.nilai_akhir;
+            nilaiAkhirCell.textContent = grade.nilai_akhir === 'Belum Disetujui' 
+                ? 'Belum Disetujui' 
+                : grade.nilai_akhir || '-'; // Menampilkan '-' jika nilai_akhir kosong
             row.appendChild(nilaiAkhirCell);
 
             tbody.appendChild(row);
