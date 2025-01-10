@@ -60,7 +60,7 @@
                     <div class="profile-picture">
                         <!-- Menampilkan huruf pertama dari nama pengguna -->
                         <span id="profile-initial">T</span>
-                        <i id="camera-icon" class="fas fa-camera"></i>                    </div>
+                                          </div>
                     <hr class="profile-divider">
                     <div class="profile-details">
                         <div class="bio-item">
@@ -118,7 +118,6 @@
                             <th>Tugas</th>
                             <th>Nilai Akhir</th>
                             <th>Status</th> 
-                            <th>Catatan</th>
                         </tr>
                     </thead>
                     <tbody id="nilai-tbody">
@@ -132,6 +131,12 @@
            
             <section id="data-nilai-siswa" class="content-section hidden">
                 <h2>Data Nilai Siswa</h2>
+                <div class="note-card">
+                    <div class="note-icon">!</div>
+                    <div id="note-tahun-ajaran" class="note-text">
+                        Silahkan filter tahun ajaran, kelas, mata pelajaran, dan jenis nilai terlebih dahulu.
+                    </div>
+                </div>
                 <div class="filter-wrapper">
                     <select id="tahun-ajaran-filter">
                         <option value="">Pilih Tahun Ajaran</option>
@@ -169,7 +174,6 @@
                             <th id="tugas-header" style="display: none;">Tugas</th>
                             <th id="nilai-akhir-header" style="display: none;">Nilai Akhir</th>
                             <th id="grade-status-header" style="display: none;">Status</th>
-                            <th id="catatan-header" style="display: none;">Catatan</th>
                         </tr>
                     </thead>
                     <tbody id="siswa-tbody">
@@ -189,31 +193,26 @@
                     <i class="fas fa-search search-icon"></i>
                   </div>
                   <button id="save-button" data-mode="save" class="btn-save">Simpan</button>
-                  <button id="cancel-button" class="btn-cancel">Batal</button>
-
+                  <button id="cancel-button" class="btn-cancel" style="display: none;">Batal</button>
+                  
                 </div>
               
                 <table border="1" id="siswa-container">
                     <thead>
                         <tr>
-                            <th>No</th>
                             <th>Nama</th>
                             <th>NISN</th>
                             <th>
                                 Hadir <br>
-                                <input type="checkbox" id="select-all-hadir"> Select All
                             </th>
                             <th>
                                 Izin <br>
-                                <input type="checkbox" id="select-all-izin" class="select-all-checkbox"> Select All
                             </th>
                             <th>
                                 Sakit <br>
-                                <input type="checkbox" id="select-all-sakit" class="select-all-checkbox"> Select All
                             </th>
                             <th>
                                 Alpa <br>
-                                <input type="checkbox" id="select-all-alpa" class="select-all-checkbox"> Select All
                             </th>
                         </tr>
                     </thead>

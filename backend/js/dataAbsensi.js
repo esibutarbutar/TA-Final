@@ -491,7 +491,6 @@ async function fetchAbsensiData(kelasId, date) {
     absensiData.forEach((item, index) => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
-              <td>${index + 1}</td>
               <td>${item.nama_siswa}</td>
               <td>${item.nisn}</td>
               <td>
@@ -510,9 +509,6 @@ async function fetchAbsensiData(kelasId, date) {
       tbody.appendChild(tr);
     });
 
-    // Initialize "Select All" functionality after rendering rows
-    initializeSelectAllLogic();
-    initializeStatusChangeLogic();
 
   } catch (error) {
     console.error("Error saat memuat data absensi:", error);
@@ -540,77 +536,6 @@ function initializeSelectAllLogic() {
         updateSelectAllStatus(status); // Update status "Select All"
       });
     });
-  });
-}
-function updateSelectAllStatus(status) {
-  const checkboxes = document.querySelectorAll(`.${status}-checkbox`);
-  const selectAllCheckbox = document.getElementById(`select-all-${status}`);
-
-  if (checkboxes.length === 0 || !selectAllCheckbox) return;
-
-  // Periksa apakah semua checkbox sudah tercentang
-  const allChecked = [...checkboxes].every(checkbox => checkbox.checked);
-  
-  // Perbarui checkbox "Select All" berdasarkan kondisi checkbox individu
-  selectAllCheckbox.checked = allChecked;
-  selectAllCheckbox.indeterminate = !allChecked && [...checkboxes].some(checkbox => checkbox.checked); // Status indeterminate
-}
-// Fungsi untuk menangani perubahan status (misal: Hadir → Izin)
-function initializeStatusChangeLogic() {
-  const hadirCheckboxes = document.querySelectorAll('.hadir-checkbox');
-  const izinCheckboxes = document.querySelectorAll('.izin-checkbox');
-  const sakitCheckboxes = document.querySelectorAll('.sakit-checkbox');
-  const alpaCheckboxes = document.querySelectorAll('.alpa-checkbox');
-
-  // Add change event listeners to each checkbox
-  hadirCheckboxes.forEach(checkbox => {
-    checkbox.addEventListener('change', function() {
-      if (this.checked) {
-        uncheckOtherStatuses(this, 'hadir'); // Uncheck other statuses in the same row
-      }
-      updateSelectAllStatus('hadir'); // Update the "Select All" status
-    });
-  });
-
-  izinCheckboxes.forEach(checkbox => {
-    checkbox.addEventListener('change', function() {
-      if (this.checked) {
-        uncheckOtherStatuses(this, 'izin'); // Uncheck other statuses in the same row
-      }
-      updateSelectAllStatus('izin'); // Update the "Select All" status
-    });
-  });
-
-  sakitCheckboxes.forEach(checkbox => {
-    checkbox.addEventListener('change', function() {
-      if (this.checked) {
-        uncheckOtherStatuses(this, 'sakit'); // Uncheck other statuses in the same row
-      }
-      updateSelectAllStatus('sakit'); // Update the "Select All" status
-    });
-  });
-
-  alpaCheckboxes.forEach(checkbox => {
-    checkbox.addEventListener('change', function() {
-      if (this.checked) {
-        uncheckOtherStatuses(this, 'alpa'); // Uncheck other statuses in the same row
-      }
-      updateSelectAllStatus('alpa'); // Update the "Select All" status
-    });
-  });
-}
-// Fungsi untuk uncheck checkbox lain dalam satu baris ketika status diubah
-function uncheckOtherStatuses(checkbox, status) {
-  const row = checkbox.closest('tr'); // Menemukan baris yang berisi checkbox yang berubah
-  const allStatuses = ['hadir', 'izin', 'sakit', 'alpa'];
-
-  allStatuses.forEach(otherStatus => {
-    if (otherStatus !== status) {
-      const otherCheckbox = row.querySelector(`.${otherStatus}-checkbox`);
-      if (otherCheckbox) {
-        otherCheckbox.checked = false;
-      }
-    }
   });
 }
 document.getElementById("save-button").addEventListener("click", function() {

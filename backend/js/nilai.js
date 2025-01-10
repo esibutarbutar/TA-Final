@@ -95,10 +95,28 @@ function loadTahunAjaranFilter() {
                 option.textContent = `${tahun.nama_tahun_ajaran} (${tahun.semester})`;
                 filterSelect.appendChild(option);
             });
+
+            // Menampilkan pesan jika tidak ada tahun ajaran yang dipilih
+            checkTahunAjaran();
         })
         .catch(error => {
             console.error('Error saat memuat filter tahun ajaran:', error);
         });
+}
+
+function checkTahunAjaran() {
+    const tahunAjaran = document.getElementById('tahun-ajaran-filter').value;
+    const noteTahunAjaran = document.getElementById('note-tahun-ajaran');
+    
+    // Menampilkan atau menyembunyikan pesan jika tahun ajaran belum dipilih
+    if (!tahunAjaran) {
+        noteTahunAjaran.style.display = 'block'; // Tampilkan pesan jika tahun ajaran belum dipilih
+        document.getElementById('data-nilai-siswa').classList.add('hidden'); // Sembunyikan data
+    } else {
+        noteTahunAjaran.style.display = 'none'; // Sembunyikan pesan jika tahun ajaran dipilih
+        document.getElementById('data-nilai-siswa').classList.remove('hidden'); // Tampilkan data
+        // Lakukan aksi lain jika tahun ajaran dipilih, seperti memuat data terkait
+    }
 }
 async function getUserSession() {
     try {
@@ -192,7 +210,6 @@ function displayGrades(gradesData, jenisNilai = '') {
     const tugasHeader = document.getElementById("tugas-header");
     const nilaiAkhirHeader = document.getElementById("nilai-akhir-header");
     const gradeStatusHeader = document.getElementById("grade-status-header");
-    const catatanHeader = document.getElementById("catatan-header");
 
     tbody.innerHTML = ''; // Bersihkan tabel sebelumnya
 
@@ -203,7 +220,6 @@ function displayGrades(gradesData, jenisNilai = '') {
         tugasHeader.style.display = "table-cell";
         nilaiAkhirHeader.style.display = "table-cell";
         gradeStatusHeader.style.display = "table-cell";
-        catatanHeader.style.display = "table-cell";
     } else {
         nilaiHeader.style.display = jenisNilai ? "table-cell" : "none";
         utsHeader.style.display = "none";
@@ -211,7 +227,6 @@ function displayGrades(gradesData, jenisNilai = '') {
         tugasHeader.style.display = "none";
         nilaiAkhirHeader.style.display = "none";
         gradeStatusHeader.style.display = "none";
-        catatanHeader.style.display = "none";
     }
 
     let shouldDisplaySaveButton = false; // Flag untuk mengecek apakah tombol simpan perlu ditampilkan
@@ -250,15 +265,16 @@ function displayGrades(gradesData, jenisNilai = '') {
                 row.appendChild(nilaiCell);
             }
 
-            // Untuk nilai-akhir, menampilkan beberapa kolom
             if (jenisNilai === 'nilai-akhir') {
                 row.appendChild(createCell(grade.uts !== null ? grade.uts : '-'));
                 row.appendChild(createCell(grade.uas !== null ? grade.uas : '-'));
                 row.appendChild(createCell(grade.tugas !== null ? grade.tugas : '-'));
                 row.appendChild(createCell(grade.nilai_akhir !== null ? grade.nilai_akhir : '-'));
-                row.appendChild(createCell(grade.gradeStatus !== null ? grade.gradeStatus : '-'));
-                row.appendChild(createCell(grade.catatan !== null ? grade.catatan : '-'));
+                
+                const statusCell = createCell(grade.gradeStatus === 'setuju' ? 'Disetujui' : (grade.gradeStatus || '-'));
+                row.appendChild(statusCell);
             }
+
 
             tbody.appendChild(row);
         });
@@ -307,16 +323,30 @@ function SaveNilai() {
 
     nilaiInputs.forEach(input => {
         const nisn = input.closest("tr").querySelector("td:nth-child(1)").textContent.trim();
-        const grade = input.value.trim();
+        let grade = input.value.trim();
         const tahunAjaran = document.getElementById("tahun-ajaran-filter").value;
         const kelasId = document.getElementById("kelas-filter").value;
         const matpelId = document.getElementById("mapel-filter").value;
         const jenisNilai = document.getElementById("jenis-nilai-filter").value;
 
+        // Validasi jika nilai bukan kelipatan 10 dan bukan angka
+        const gradeNumber = parseInt(grade);
+        
+        // Memastikan grade adalah angka yang valid dan kelipatan 10
+        if (grade && (isNaN(gradeNumber) || gradeNumber<= 10)) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Invalid Input',
+                text: 'Nilai yang'
+            });
+            return;  // Menghentikan proses jika ada nilai yang salah
+        }
+
         if (!grade) {
             isAllFilled = false;
         }
 
+        // Memasukkan data ke gradesData hanya jika data lengkap
         if (nisn && grade && tahunAjaran && kelasId && matpelId && jenisNilai) {
             gradesData.push({
                 nisn,
@@ -329,6 +359,7 @@ function SaveNilai() {
         }
     });
 
+    // Validasi jika ada nilai yang belum diinput
     if (!isAllFilled) {
         Swal.fire({
             icon: 'error',
@@ -338,15 +369,17 @@ function SaveNilai() {
         return;
     }
 
+    // Validasi jika tidak ada data yang valid dimasukkan
     if (gradesData.length === 0) {
         Swal.fire({
             icon: 'error',
             title: 'Oops...',
-            text: 'Tidak ada nilai yang diinput. Silakan masukkan nilai terlebih dahulu.'
+            text: 'Nilai yang valid > 9'
         });
         return;
     }
 
+    // Kirim data ke server jika sudah valid
     fetch('/api/simpan-nilai', {
         method: 'POST',
         headers: {
@@ -360,26 +393,15 @@ function SaveNilai() {
             Swal.fire({
                 icon: 'success',
                 title: 'Nilai Berhasil Disimpan!',
-                text: data.message,
                 confirmButtonColor: '#004D40',
-
+                text: data.message
             }).then(() => {
                 const saveButton = document.getElementById("save-button");
                 if (saveButton) {
                     saveButton.style.display = "none";  // Sembunyikan tombol simpan setelah berhasil
                 }
 
-                // Langsung memanggil filterGrades agar tombol edit muncul
                 filterGrades();
-
-                // Nonaktifkan input setelah simpan
-                const nilaiCells = document.querySelectorAll("td");
-                nilaiCells.forEach(cell => {
-                    const input = cell.querySelector("input");
-                    if (input) {
-                        input.disabled = true;  // Nonaktifkan input setelah simpan
-                    }
-                });
             });
         } else {
             Swal.fire({
@@ -398,8 +420,6 @@ function SaveNilai() {
         });
     });
 }
-
-// Fungsi untuk mengedit nilai
 function editGrades(event) {
     const rows = document.querySelectorAll("#siswa-tbody tr");
 

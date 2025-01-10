@@ -26,13 +26,13 @@
 
 /* Gaya hover pada select */
 #tahun-ajaran-filter:hover {
-    border-color: #007bff;
+    border-color: #004D40;
     background-color: #e9f7ff;
 }
 
 /* Gaya ketika select dalam fokus */
 #tahun-ajaran-filter:focus {
-    border-color: #007bff;
+    border-color: #004D40;
     outline: none;
     background-color: #fff;
 }
@@ -67,3 +67,48 @@ label {
     font-size: 16px;
     background-color: white;
 }
+/* Card Style */
+.note-card {
+    border-radius: 8px;
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+    font-family: Arial, sans-serif;
+}
+
+/* Tanda Seru Icon */
+.note-icon {
+    background-color: #004D40;
+    color: white;
+    font-weight: bold;
+    font-size: 24px;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-right: 15px;
+}
+
+/* Teks dalam Card */
+.note-text {
+    color: #004D40;
+    font-size: 16px;
+    line-height: 1.5;
+}
+
+/* Filter wrapper */
+.filter-wrapper {
+    margin-top: 20px;
+}
+
+/* Styling Select Dropdown */
+#tahun-ajaran-filter {
+    padding: 8px 12px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+}
+

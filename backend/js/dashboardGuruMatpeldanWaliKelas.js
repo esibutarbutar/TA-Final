@@ -63,22 +63,25 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   links.forEach(link => {
-      link.addEventListener('click', (e) => {
-          e.preventDefault();
-          hideAllSections();
-          const target = link.getAttribute('data-target');
-          console.log('Trying to show section:', target); // Debugging
+    link.addEventListener('click', (e) => {
+        e.preventDefault();
 
-          const targetSection = document.getElementById(target);
-          if (targetSection) {
-              console.log('Showing section:', targetSection.id); // Debugging
-              targetSection.classList.remove('hidden');
-          } else {
-              console.error('Target section not found:', target); // Debugging
-              alert(`Target section not found: ${target}`); // Error handling
-          }
-      });
-  });
+        links.forEach(l => l.classList.remove('active'));
+        link.classList.add('active');
+        hideAllSections();
+
+        const target = link.getAttribute('data-target');
+        const targetSection = document.getElementById(target);
+        if (targetSection) {
+            targetSection.classList.remove('hidden');
+
+            // Jika target adalah data siswa, panggil fungsi fetchSiswaData()
+            if (target === 'data-nilai-siswa') {
+                fetchSiswaData();
+            }
+        }
+    });
+});
 
   // Default to show the profile section
   hideAllSections();

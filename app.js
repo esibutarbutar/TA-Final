@@ -1551,45 +1551,6 @@ app.get('/api/attendance-details-siswa', async (req, res) => {
         return res.status(500).json({ message: 'Gagal memuat data absensi', error });
     }
 });
-app.post('/api/update-attendance', async (req, res) => {
-    const { absensiId, absensiData } = req.body;
-    
-    if (!absensiId || !Array.isArray(absensiData) || absensiData.length === 0) {
-        return res.status(400).json({ message: 'Invalid data' });
-    }
-
-    try {
-        // Mengecek apakah absensi dengan ID yang diberikan sudah ada di database
-        const checkAbsensi = await db.query('SELECT * FROM attendanceDetails WHERE id_attendance = ?', [absensiId]);
-
-        if (checkAbsensi.length === 0) {
-            return res.status(404).json({ message: 'Absensi ID tidak ditemukan' });
-        }
-
-        // Menghapus data duplikat pada absensiData
-        const uniqueAbsensiData = removeDuplicateAbsensi(absensiData);
-
-        // Melakukan update pada setiap item absensi
-        const updatePromises = uniqueAbsensiData.map(item => {
-            return db.query(
-                'UPDATE attendanceDetails SET status = ? WHERE id_attendance = ? AND nisn = ?',
-                [item.status, absensiId, item.nisn]
-            );
-        });
-
-        // Menunggu semua update selesai
-        await Promise.all(updatePromises);
-
-        res.json({ message: 'Attendance updated successfully' });
-
-    } catch (error) {
-        console.error('Error updating attendance:', error);
-        res.status(500).json({ message: 'Gagal memperbarui data absensi' });
-    }
-});
-
-
-// endpoint untuk lupa pasword yang membedakannya itu role (pegawai/siswa)
 //berada di file lupapassword.html
 app.post('/api/reset-password/:role', async (req, res) => {
     const { role } = req.params;
@@ -2087,14 +2048,14 @@ app.get('/api/grades/:kelasId/:matpelId', async (req, res) => {
 
         // Query nilai siswa berdasarkan kelas dan mata pelajaran
         const [grades] = await db.execute(`
-            SELECT g.nisn, g.gradesType, g.grade, g.gradeStatus, g.catatan
+            SELECT g.nisn, g.gradesType, g.grade, g.gradeStatus
             FROM grades g
             WHERE g.id_kelas = ? AND g.id_matpel = ? AND g.gradesType IN ('uts', 'uas', 'tugas');
         `, [kelasId, matpelId]);
 
         // Gabungkan data nilai ke data siswa
         const gradesMap = grades.reduce((acc, grade) => {
-            if (!acc[grade.nisn]) acc[grade.nisn] = { uts: 0, uas: 0, tugas: 0, gradeStatus: '', catatan: '' };
+            if (!acc[grade.nisn]) acc[grade.nisn] = { uts: 0, uas: 0, tugas: 0, gradeStatus: '' };
 
             if (grade.gradesType.toLowerCase() === 'uts') {
                 acc[grade.nisn].uts = grade.grade ? Number(grade.grade) : 0;
@@ -2105,14 +2066,13 @@ app.get('/api/grades/:kelasId/:matpelId', async (req, res) => {
             }
 
             if (grade.gradeStatus) acc[grade.nisn].gradeStatus = grade.gradeStatus;
-            if (grade.catatan) acc[grade.nisn].catatan = grade.catatan;
 
             return acc;
         }, {});
 
         // Gabungkan data siswa dengan data nilai
         const results = students.map(student => {
-            const nilai = gradesMap[student.nisn] || { uts: 0, uas: 0, tugas: 0, gradeStatus: '', catatan: '' };
+            const nilai = gradesMap[student.nisn] || { uts: 0, uas: 0, tugas: 0, gradeStatus: '' };
             const nilaiAkhir = parseFloat(((nilai.uts * 0.4) + (nilai.uas * 0.4) + (nilai.tugas * 0.2)).toFixed(2));
             return {
                 nisn: student.nisn,
@@ -2122,7 +2082,6 @@ app.get('/api/grades/:kelasId/:matpelId', async (req, res) => {
                 tugas: nilai.tugas,
                 nilai_akhir: Number(nilaiAkhir) || 0,
                 gradeStatus: nilai.gradeStatus,
-                catatan: nilai.catatan,
             };
         });
 
@@ -2158,7 +2117,7 @@ app.get('/api/nilai-akhir', async (req, res) => {
         }
 
         const query = `
-            SELECT g.nisn, s.nama_siswa, g.gradesType, g.grade, g.gradeStatus, g.catatan
+            SELECT g.nisn, s.nama_siswa, g.gradesType, g.grade, g.gradeStatus, 
             FROM grades g
             JOIN siswa s ON g.nisn = s.nisn
             WHERE g.id_kelas = ? AND g.id_matpel = ? AND g.gradesType IN ('uts', 'uas', 'tugas');
@@ -2168,7 +2127,7 @@ app.get('/api/nilai-akhir', async (req, res) => {
         
         // Kelompokkan data berdasarkan NISN
         const nilaiAkhir = results.reduce((acc, row) => {
-            const { nisn, nama_siswa, gradesType, grade, gradeStatus, catatan } = row;
+            const { nisn, nama_siswa, gradesType, grade, gradeStatus  } = row;
 
             if (!acc[nisn]) {
                 acc[nisn] = {
@@ -2179,7 +2138,7 @@ app.get('/api/nilai-akhir', async (req, res) => {
                     tugas: 0,
                     nilai_akhir: 0,
                     gradeStatus: gradeStatus || '',
-                    catatan: catatan || ''
+                    
                 };
             }
 
@@ -2192,7 +2151,6 @@ app.get('/api/nilai-akhir', async (req, res) => {
             }
 
             if (gradeStatus) acc[nisn].gradeStatus = gradeStatus;
-            if (catatan) acc[nisn].catatan = catatan;
 
             return acc;
         }, {});
@@ -2243,12 +2201,11 @@ app.get('/api/mapel/:idKelas', async (req, res) => {
     }
 });
 app.post('/api/update-grade-status', async (req, res) => {
-    const { nisn, catatan, status, mapel_id } = req.body;
+    const { nisn, status, mapel_id } = req.body;
 
     // Menambahkan console.log untuk memeriksa nilai variabel yang diterima
     console.log({
         nisn: nisn,
-        catatan: catatan,
         status: status,
         mapel_id: mapel_id
     });
@@ -2261,11 +2218,11 @@ app.post('/api/update-grade-status', async (req, res) => {
     try {
         const query = `
             UPDATE grades
-            SET gradeStatus = ?, catatan = ?
+            SET gradeStatus = ?
             WHERE nisn = ? AND id_matpel = ?
         `;
 
-        const [result] = await db.execute(query, [status, catatan || null, nisn, mapel_id]);
+        const [result] = await db.execute(query, [status, nisn, mapel_id]);
 
         if (result.affectedRows === 0) {
             return res.status(404).json({ message: 'Data tidak ditemukan atau tidak ada perubahan yang dilakukan.' });
@@ -2286,7 +2243,7 @@ app.get('/api/get-grades', async (req, res) => {
     }
 
     const query = `
-        SELECT g.gradeStatus, g.catatan
+        SELECT g.gradeStatus, 
         FROM grades g
         WHERE g.nisn = ? AND g.id_matpel = ?;
     `;
@@ -2298,15 +2255,12 @@ app.get('/api/get-grades', async (req, res) => {
             return res.status(404).json({ error: 'Data status dan catatan tidak ditemukan.' });
         }
 
-        // Menghitung status dan catatan
         let status = 'Tidak Diterima'; // Default status jika tidak ada status "Diterima"
-        let catatan = '';
 
         // Cek apakah ada status "Diterima" atau "Lulus"
         for (let row of results) {
             if (row.gradeStatus === 'Diterima' || row.gradeStatus === 'Lulus') {
                 status = row.gradeStatus;  // Pilih status pertama yang Diterima atau Lulus
-                catatan = row.catatan;     // Ambil catatan yang sesuai
                 break;  // Keluar setelah menemukan status Diterima atau Lulus
             }
         }
@@ -2314,14 +2268,12 @@ app.get('/api/get-grades', async (req, res) => {
         // Jika status masih "Tidak Diterima", ambil status yang pertama
         if (status === 'Tidak Diterima' && results.length > 0) {
             status = results[0].gradeStatus;
-            catatan = results[0].catatan;
         }
 
         // Hasil akhir
         res.json({
             nisn: nisn,
             status: status,
-            catatan: catatan
         });
 
     } catch (err) {
@@ -2344,7 +2296,7 @@ app.get('/api/grades/:tahunAjaran', async (req, res) => {
     }
 
     const query = `
-        SELECT g.nisn, s.nama_siswa, g.gradesType, g.grade, g.gradeStatus, g.catatan, m.nama_mata_pelajaran
+        SELECT g.nisn, s.nama_siswa, g.gradesType, g.grade, g.gradeStatus, m.nama_mata_pelajaran
         FROM grades g
         JOIN siswa s ON g.nisn = s.nisn
         JOIN mata_pelajaran m ON g.id_matpel = m.id
@@ -2418,7 +2370,7 @@ app.get('/api/grades', async (req, res) => {
 
         // Query nilai siswa berdasarkan parameter
         let gradesQuery = `
-            SELECT g.nisn, g.gradesType, g.grade, g.gradeStatus, g.catatan
+            SELECT g.nisn, g.gradesType, g.grade, g.gradeStatus
             FROM grades g
             WHERE g.id_kelas = ? AND g.id_matpel = ?`;
         const queryParams = [kelasId, matpelId];
@@ -2448,7 +2400,6 @@ app.get('/api/grades', async (req, res) => {
             if (!acc[grade.nisn]) acc[grade.nisn] = {};
             acc[grade.nisn][grade.gradesType.toLowerCase()] = grade.grade ? Number(grade.grade) : null;
             acc[grade.nisn].gradeStatus = grade.gradeStatus || '';
-            acc[grade.nisn].catatan = grade.catatan || '';
             return acc;
         }, {});
 
@@ -2461,7 +2412,6 @@ app.get('/api/grades', async (req, res) => {
                 tugas: gradesMap[student.nisn]?.tugas || null,
                 nilai_akhir: null,
                 gradeStatus: gradesMap[student.nisn]?.gradeStatus || '',
-                catatan: gradesMap[student.nisn]?.catatan || '',
             };
 
             // Hitung nilai akhir jika memungkinkan
@@ -2694,9 +2644,16 @@ app.get('/api/absensi/:kelasId/:tanggal', async (req, res) => {
   
       console.log('updateResult:', updateResult);
   
-      if (updateResult.changedRows > 0) {
+      if (updateResult && updateResult.changedRows > 0) {
         return res.json({ success: true, message: 'Password berhasil diubah' });
-      } 
+    } else if (updateResult && updateResult[0] && updateResult[0].affectedRows > 0) {
+        console.log('Password successfully updated');
+        return res.status(200).json({ success: true, message: 'Password berhasil diubah' });
+    } else {
+        console.error('Update failed, affectedRows:', updateResult?.[0]?.affectedRows || updateResult?.changedRows);
+        return res.status(500).json({ success: false, message: 'Gagal memperbarui password' });
+    }
+    
       
     } catch (error) {
       console.error('Error during password update:', error);

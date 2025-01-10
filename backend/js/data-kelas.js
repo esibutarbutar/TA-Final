@@ -15,7 +15,7 @@ function loadTahunAjaran() {
         });
 }
 
-loadKelasData();
+// loadKelasData();
 
 document.getElementById('kelas-filter').addEventListener('change', function () {
     const filterValue = this.value;
